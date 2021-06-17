@@ -224,6 +224,8 @@ class P(Parser):
             
         return self >> {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR}
 
+    
+    #todo sredi član da bude
     def broj(self):
         t = self.član()
         while op := self >= {T.PLUS, T.MINUS}: t = Op(op, t, self.član())
