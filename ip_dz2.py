@@ -255,7 +255,7 @@ class P(Parser):
             self >= T.OZTVR
             return LogUBroj(log_izraz)
 
-    start = izraz
+    start = broj
     lexer = rikose
 
 
@@ -267,15 +267,44 @@ class Konjunkcija(AST('konjunkti')):
     def vrijednost(self, mem):
         return all([konj.vrijednost(mem) for konj in self.konjunkti])
         
-class Negacija(AST('kurac')):
+class Negacija(AST('log_vrijednost')):
     def vrijednost(self, mem):
-        return not self.kurac.vrijednost(mem)
+        return not self.log_vrijednost.vrijednost(mem)
 
 class Usporedba(AST('lijevo desno manje veće jednako')):
     def vrijednost(self, mem):
         l, d = self.lijevo.vrijednost(mem), self.desno.vrijednost(mem)
         return bool((self.manje and l < d) or (self.jednako and l == d) \
                    or (self.veće and l > d) or False)
+
+class Op(AST('operator lijevo desno')):
+    def izvrši(self, mem):
+        o = self.operator
+        print(o, self.lijevo, self.desno)
+        if o ^ T.MINUS:
+            if self.lijevo == nenavedeno:
+                return -self.desno.vrijednost(mem)
+            else:
+                return self.lijevo.vrijednost(mem) - self.desno.vrijednost(mem)
+
+        elif o ^ T.NA:
+             return self.lijevo.vrijednost(mem) ** self.desno.vrijednost(mem)
+        
+        elif o ^ T.PLUS: 
+            return self.lijevo.vrijednost(mem) + self.desno.vrijednost(mem)
+    
+        elif o ^ T.PUTA:
+            return self.lijevo.vrijednost(mem) * self.desno.vrijednost(mem)
+        
+        elif o ^ T.KROZ: 
+            try:
+                return self.lijevo.vrijednost(mem) * self.desno.vrijednost(mem)
+            except ZeroDivisionError as zde:
+                print(zde)
+
+
+        else:
+            assert False, 'ne podržavamo ovaj operator'
 
 class Prekid(NelokalnaKontrolaToka): pass
 
@@ -309,7 +338,7 @@ def f(izraz):
     P.tokeniziraj(izraz)
     ast = P(izraz)
     mem = Memorija()
-    print(ast.vrijednost(mem))
+    print(ast.izvrši(mem))
 
     prikaz(ast)
 
@@ -345,11 +374,23 @@ izrazi.append('''
 Istina = Laz
 ''')
 
-#f(izrazi[-2])
-for izraz in izrazi:
-    try:
-        f(izraz)
-    except SintaksnaGreška as sg:
-        print("greška")
-        print(izraz)
-        break
+izrazi.append('''
+3 + 5
+''')
+
+izrazi.append('''
+3 * 5 * 2 + 4
+''')
+
+# izrazi.append('''
+# 3 / 5
+# ''')
+
+f(izrazi[-1])
+# for izraz in izrazi:
+#     try:
+#         f(izraz)
+#     except SintaksnaGreška as sg:
+#         print("greška")
+#         print(izraz)
+#         break
