@@ -108,23 +108,28 @@ class P(Parser):
     def akcija(self):
         if self >= T.POMAKNI:
             pomak = self >> {T.GORE, T.DOLJE, T.LIJEVO, T.DESNO}
+            self >> T.TOCKAZ
             return Pomakni(pomak)
         elif self >> T.ALARM:
+            self >> T.TOCKAZ
             return Akcija()
 
     def ocitavanje(self):
         if self >= T.PREPREKA:
             pomak = self >> {T.GORE, T.DOLJE, T.LIJEVO, T.DESNO}
+            self >> T.TOCKAZ
             return Prepreka(pomak)
         elif self >> T.COVJEK:
+            self >> T.TOCKAZ
             return Covjek()
 
     def pridruzivanje(self):
         varijabla = self >> {T.BVAR, T.LVAR, T.AVAR}
         self >> T.JEDNAKO
         if varijabla ^ T.BVAR: pridruzeno =  self.broj()
-        elif varijabla ^ T.LVAR: pridruzeno =  self.logicka()
+        elif varijabla ^ T.LVAR: pridruzeno =  self.izraz()
         elif varijabla ^ T.AVAR: pridruzeno = self.lista()
+        self >> T.TOCKAZ
         return Pridruzivanje(varijabla, pridruzeno)
     
     def petlja(self):
@@ -204,26 +209,20 @@ class P(Parser):
                     assert False, f'potreban operator uspoređivanja'
             except AssertionError as ae:
                 pass
-                #TODO smisli bolji error za hvatat
-                
+                #TODO smisli bolji error za hvatat        
 
     def log(self):
         if self >= T.UIZRAZ:
             self >> T.OOTVR
             broj = self.broj()
             self >> T.OZTVR
-            #return BrojULog(broj)
+            return BrojULog(broj)
         elif self >= T.OOTVR:
             izraz = self.izraz()
             self >> T.OZTVR
             return izraz
             
         return self >> {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR}
-
-    # broj -> clan | broj (PLUS | MINUS) clan
-    # clan -> faktor | clan (PUTA | KROZ) faktor
-    # faktor -> baza | baza NA faktor | MINUS faktor
-    # baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR
 
     def broj(self):
         t = self.član()
@@ -254,7 +253,7 @@ class P(Parser):
             self >> T.OOTVR
             log_izraz = self.izraz()
             self >= T.OZTVR
-            return BrojULog(log_izraz)
+            return LogUBroj(log_izraz)
 
     start = izraz
     lexer = rikose
