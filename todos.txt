@@ -1,0 +1,5 @@
+# todos
+# provjeri mozemo li imati praznu listu i sve zvezano za listu
+# dodati varijabli vrijednost varijable
+# dodaj fractions tamo gdje dijelimo
+# rekurzija u OP radi probleme (probajmo to iterativno ili viditi kako ovo radi)
