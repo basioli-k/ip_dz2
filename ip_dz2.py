@@ -7,7 +7,7 @@ class T(TipoviTokena):
     MANJE, VECE, JEDNAKO = '<>=' # Napravljeno kao u 21_BASIC.
     TOCKAZ, ZAREZ = ';,'
     FOR, IF, TO, AND, OR, NOT = 'for', 'if', 'to', 'and', 'or', 'not'
-    UBROJ, UIZRAZ = 'broj', 'izraz'
+    ISPIS, UBROJ, UIZRAZ = 'ispis', 'broj', 'izraz'
     POMAKNI, PREPREKA, COVJEK, ALARM = 'pomakni', 'prepreka', 'covjek', 'alarm'
 
     class GORE(Token):
@@ -22,6 +22,7 @@ class T(TipoviTokena):
     class DESNO(Token):
         literal = 'desno'
         def vrijednost(self, mem): return (1, 0)
+
     class ISTINA(Token):
         literal = 'istina'
         def vrijednost(self, mem): return True
@@ -31,9 +32,11 @@ class T(TipoviTokena):
     class NEODLUCNO(Token):
         literal = 'neodlucno'
         def vrijednost(self, mem): return nenavedeno
+
     class BREAK(Token):
         literal = 'break'
         def izvrši(self, mem): raise Prekid
+
     class BROJ(Token):
         def vrijednost(self, mem): return fractions.Fraction(self.sadržaj)
     class BVAR(Token):
@@ -43,6 +46,9 @@ class T(TipoviTokena):
     class AVAR(Token):
         def vrijednost(self, mem): return mem[self]
 
+alias = { 'up' : T.GORE, 'down' : T.DOLJE, 'left' : T.LIJEVO, 'right' : T.DESNO,
+          'false' : T.LAZ, 'true' : T.ISTINA, 'unknown' : T.NEODLUCNO,
+          'print' : T.ISPIS}
 
 def rikose(lex):
     for znak in lex:
@@ -60,20 +66,23 @@ def rikose(lex):
                tipVarijable = T.LVAR
             if lex >= '€':
                tipVarijable = T.AVAR
-            yield lex.literal(tipVarijable, case=False)
+            s = lex.sadržaj.casefold()
+            if s in alias: yield lex.token(alias[s])
+            else: yield lex.literal(tipVarijable, case=False)
         else:
             yield lex.literal(T)
 
 ### BKG
 # start = naredbe -> naredba*
-# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | ocitavanje | BREAK TOCKAZ 
-# ocitavanje -> PREPREKA smjer TOCKAZ  | COVJEK TOCKAZ 
-# akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
-# smjer -> GORE | DOLJE | LIJEVO | DESNO
+# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | ocitavanje | BREAK TOCKAZ | ispis
+# pridruzivanje -> BVAR JEDNAKO broj | LVAR JEDNAKO izraz | AVAR JEDNAKO lista
 # petlja -> FOR OOTVR BVAR JEDNAKO broj TO broj OZTVR blok
 # grananje -> IF izraz blok
 # blok -> naredba | VOTVR naredbe VZTVR
-# pridruzivanje -> BVAR JEDNAKO broj | LVAR JEDNAKO izraz | AVAR JEDNAKO lista
+# akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
+# ocitavanje -> PREPREKA smjer TOCKAZ  | COVJEK TOCKAZ 
+# smjer -> GORE | DOLJE | LIJEVO | DESNO
+# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ
 
 # izraz -> disjunkt | izraz OR dijsunkt
 # disjunkt -> konjunkt | disjunkt AND konjunkt
@@ -85,7 +94,7 @@ def rikose(lex):
 # faktor -> baza | baza NA faktor | MINUS faktor
 # baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR
 
-# lista -> UOTVR (elementi | '') UZTVR
+# lista -> UOTVR (elementi | '') UZTVR | AVAR
 # elementi -> element | element ZAREZ elementi
 # element -> broj | ISTINA | LAZ | NEODLUCNO | lista
 
@@ -101,9 +110,17 @@ class P(Parser):
         elif self > T.IF: return self.grananje()
         elif self > {T.POMAKNI, T.ALARM}: self.akcija()
         elif self > {T.PREPREKA, T.COVJEK}: self.ocitavanje()
+        elif self > T.ISPIS: return self.ispis()
         elif br := self >> T.BREAK:
             self >> T.TOCKAZ
             return br
+    
+    def ispis(self):
+        self >> T.ISPIS
+        if self > {T.AVAR, T.UOTVR}: ispisant = self.lista()
+        else: ispisant = self.broj()
+        self >> T.TOCKAZ
+        return Ispis(ispisant)
 
     def akcija(self):
         if self >= T.POMAKNI:
@@ -112,7 +129,7 @@ class P(Parser):
             return Pomakni(pomak)
         elif self >> T.ALARM:
             self >> T.TOCKAZ
-            return Akcija()
+            return Alarm()
 
     def ocitavanje(self):
         if self >= T.PREPREKA:
@@ -159,12 +176,14 @@ class P(Parser):
         return blok
         
     def lista(self):
-        self >> T.UOTVR
-        if self >= T.UZTVR:
-            return Lista([])
-        lista = self.elementi()
-        self >> T.UZTVR
-        return Lista(lista)
+        if avar := self >= T.AVAR: return Lista(avar, [])
+        else:
+            self >> T.UOTVR
+            if self >= T.UZTVR:
+                return Lista([])
+            popis = self.elementi()
+            self >> T.UZTVR
+            return Lista(nenavedeno, popis)
     
     def elementi(self):
         lista = [self.element()]
@@ -172,7 +191,7 @@ class P(Parser):
         return lista
 
     def element(self):
-        if op := self >= {T.ISTINA, T.LAZ, T.NEODLUCNO}: return op
+        if val := self >= {T.ISTINA, T.LAZ, T.NEODLUCNO, T.AVAR}: return val
         elif self > T.UOTVR: return self.lista()
         else: return self.broj()
 
@@ -257,28 +276,32 @@ class P(Parser):
             self >= T.OZTVR
             return LogUBroj(log_izraz)
 
-    start = broj
+    start = naredbe
     lexer = rikose
 
 class Program(AST('naredbe')):
-    def izvrši(self):
-        mem = Memorija()
+    def izvrši(self, okolina):
+        mem = Memorija(okolina)
         try:  # break izvan petlje je zapravo sintaksna greška - kompliciranije
             for naredba in self.naredbe: naredba.izvrši(mem)
         except Prekid: raise SemantičkaGreška('nedozvoljen break izvan petlje')
 
+class Ispis(AST('ispisant')):
+    def izvrši(self, mem):
+        print(self.ispisant.vrijednost(mem))
+
 class Pomakni(AST('pomak')): 
     def izvrši(self, mem): pass
-class Alarm(AST()): 
+class Alarm(AST('')): 
     def izvrši(self, mem): pass
 class Prepreka(AST('pomak')):
     def izvrši(self, mem): pass
-class Covjek(AST()): 
+class Covjek(AST('')): 
     def izvrši(self, mem): pass
 
 class Pridruzivanje(AST('varijabla pridruzeno')):
     def izvrši(self, mem): 
-        mem[self.varijabla] = self.pridruzeno.vrijednost()
+        mem[self.varijabla] = self.pridruzeno.vrijednost(mem)
 
 class Petlja(AST('varijabla pocetak kraj naredbe')):
     def izvrši(self, mem): 
@@ -294,21 +317,22 @@ class Grananje(AST('uvjet naredbe')):
     def izvrši(self, mem): 
         b = self.uvjet.vrijednost(mem)
         if b == ~0:
-            for naredba in naredbe: naredba.izvrši(mem)
+            for naredba in self.naredbe: naredba.izvrši(mem)
     
-class Lista(AST('lista')):
+class Lista(AST('var lista')):
     def vrijednost(self, mem): 
-        return [element.vrijednost() for element in self.lista]
+        if self.var ^ T.AVAR: return self.var.vrijednost(mem)
+        else: return [element.vrijednost(mem) for element in self.lista]
 
 class LogUBroj(AST('izraz')):
     def vrijednost(self, mem):
-        if self.izraz.vrijednost() == True: return 2
-        elif self.izraz.vrijednost() == False: return 0
+        if self.izraz.vrijednost(mem) == True: return 2
+        elif self.izraz.vrijednost(mem) == False: return 0
         else: return 1
 
 class BrojULog(AST('broj')):
     def vrijednost(self, mem):
-        if self.broj.vrijednost() == 0: return False
+        if self.broj.vrijednost(mem) == 0: return False
         else: return True
 
 class Disjunkcija(AST('disjunkti')):
@@ -330,7 +354,10 @@ class Usporedba(AST('lijevo desno manje veće jednako')):
                    or (self.veće and l > d) or False)
 
 class Op(AST('operator lijevo desno')):
+    # TODO: Trebalo bi maknut ovu funkciju
     def izvrši(self, mem):
+        return self.vrijednost(mem)
+    def vrijednost(self, mem):
         o = self.operator
         print(o, self.lijevo, self.desno)
         if o ^ T.MINUS:
@@ -350,7 +377,7 @@ class Op(AST('operator lijevo desno')):
         
         elif o ^ T.KROZ: 
             try:
-                return self.lijevo.vrijednost(mem) * self.desno.vrijednost(mem)
+                return self.lijevo.vrijednost(mem) / self.desno.vrijednost(mem)
             except ZeroDivisionError as zde:
                 print(zde)
 
@@ -389,8 +416,7 @@ Istina and Laz
 def f(izraz):
     P.tokeniziraj(izraz)
     ast = P(izraz)
-    mem = Memorija()
-    print(ast.izvrši(mem))
+    print(ast.izvrši(okolina={}))
 
     prikaz(ast)
 
@@ -434,9 +460,50 @@ izrazi.append('''
 3 * 5 * 2 + 4
 ''')
 
-# izrazi.append('''
-# 3 / 5
-# ''')
+izrazi.append('''
+ 3 / 5
+''')
+
+izrazi.append('''
+3 * broj(laz) 
+''')
+
+izrazi.append('''
+3 * broj(laz) + broj(istina)
+''')
+
+izrazi.append('''
+2+-3
+''')
+
+izrazi.append('''
+(2 * (3 + 4 ^ 2) - 2)
+''')
+
+izrazi.append('''
+a = 5;
+b = 3;
+c = a + b * 2;
+''')
+
+izrazi.append('''
+lista€ = [2 , istina, [], [3, 5, []]];
+''')
+
+izrazi.append('''
+izraz$ = True or lAZ and not False;
+''')
+
+izrazi.append('''
+a = 5 * 10;
+ispis a;
+''')
+
+izrazi.append('''
+a = 3;
+l€ = [2, istina, faLSE, [a, 5 * 3 - 2 / 1]];
+ispis l€;
+''')
 
 f(izrazi[-1])
 # for izraz in izrazi:
