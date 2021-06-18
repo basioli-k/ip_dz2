@@ -260,6 +260,56 @@ class P(Parser):
     start = broj
     lexer = rikose
 
+class Program(AST('naredbe')):
+    def izvrši(self):
+        mem = Memorija()
+        try:  # break izvan petlje je zapravo sintaksna greška - kompliciranije
+            for naredba in self.naredbe: naredba.izvrši(mem)
+        except Prekid: raise SemantičkaGreška('nedozvoljen break izvan petlje')
+
+class Pomakni(AST('pomak')): 
+    def izvrši(self, mem): pass
+class Alarm(AST()): 
+    def izvrši(self, mem): pass
+class Prepreka(AST('pomak')):
+    def izvrši(self, mem): pass
+class Covjek(AST()): 
+    def izvrši(self, mem): pass
+
+class Pridruzivanje(AST('varijabla pridruzeno')):
+    def izvrši(self, mem): 
+        mem[self.varijabla] = self.pridruzeno.vrijednost()
+
+class Petlja(AST('varijabla pocetak kraj naredbe')):
+    def izvrši(self, mem): 
+        kv = self.varijabla
+        p, k = self.pocetak.vrijednost(mem), self.kraj.vrijednost(mem)
+        korak = 1 if p <= k else -1
+        mem[kv] = p
+        while (mem[kv] - k) * korak <= 0:
+            for naredba in self.naredbe: naredba.izvrši(mem)
+            mem[kv] += korak
+
+class Grananje(AST('uvjet naredbe')):
+    def izvrši(self, mem): 
+        b = self.uvjet.vrijednost(mem)
+        if b == ~0:
+            for naredba in naredbe: naredba.izvrši(mem)
+    
+class Lista(AST('lista')):
+    def vrijednost(self, mem): 
+        return [element.vrijednost() for element in self.lista]
+
+class LogUBroj(AST('izraz')):
+    def vrijednost(self, mem):
+        if self.izraz.vrijednost() == True: return 2
+        elif self.izraz.vrijednost() == False: return 0
+        else: return 1
+
+class BrojULog(AST('broj')):
+    def vrijednost(self, mem):
+        if self.broj.vrijednost() == 0: return False
+        else: return True
 
 class Disjunkcija(AST('disjunkti')):
     def vrijednost(self, mem):
