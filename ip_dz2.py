@@ -9,6 +9,7 @@ class T(TipoviTokena):
     FOR, IF, TO, AND, OR, NOT = 'for', 'if', 'to', 'and', 'or', 'not'
     ISPIS, UBROJ, UIZRAZ = 'ispis', 'broj', 'izraz'
     POMAKNI, PREPREKA, COVJEK, ALARM = 'pomakni', 'prepreka', 'covjek', 'alarm'
+    UBACI_NA_KRAJ, IZBACI_SA_KRAJA, DULJINA = 'ubaci', 'izbaci', 'duljina'
 
     class GORE(Token):
         literal = 'gore'
@@ -31,7 +32,7 @@ class T(TipoviTokena):
         def vrijednost(self, mem): return False
     class NEODLUCNO(Token):
         literal = 'neodlucno'
-        def vrijednost(self, mem): return nenavedeno
+        def vrijednost(self, mem): return nenavedeno #TODO koristimo li ovo igdje? ako ne možda bi mogli staviti "neodlucno" zbog ispisa
 
     class BREAK(Token):
         literal = 'break'
@@ -74,15 +75,20 @@ def rikose(lex):
 
 ### BKG
 # start = naredbe -> naredba*
-# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | ocitavanje | BREAK TOCKAZ | ispis
-# pridruzivanje -> BVAR JEDNAKO broj | LVAR JEDNAKO izraz | AVAR JEDNAKO lista
+# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | ocitavanje | BREAK TOCKAZ | ubaci TOCKAZ | izbaci TOCKAZ | ispis
+
+# ubaci -> UBACI_NA_KRAJ OOTVR AVAR ZAREZ lista OZTVR | UBACI_NA_KRAJ OOTVR AVAR ZAREZ broj OZTVR | UBACI_NA_KRAJ OOTVR AVAR ZAREZ izraz OZTVR
+# izbaci -> IZBACI_SA_KRAJA OOTVR AVAR OZTVR
+# duljina -> DULJINA OOTVR lista OZTVR
+
+# pridruzivanje -> BVAR JEDNAKO broj | LVAR JEDNAKO izraz | AVAR JEDNAKO lista | BVAR JEDNAKO izbaci | AVAR JEDNAKO izbaci | LVAR JEDNAKO izbaci
 # petlja -> FOR OOTVR BVAR JEDNAKO broj TO broj OZTVR blok
 # grananje -> IF izraz blok
 # blok -> naredba | VOTVR naredbe VZTVR
 # akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
 # ocitavanje -> PREPREKA smjer TOCKAZ  | COVJEK TOCKAZ 
 # smjer -> GORE | DOLJE | LIJEVO | DESNO
-# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ
+# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ | ISPIS log TOCKAZ 
 
 # izraz -> disjunkt | izraz OR dijsunkt
 # disjunkt -> konjunkt | disjunkt AND konjunkt
@@ -92,7 +98,7 @@ def rikose(lex):
 # broj -> clan | broj (PLUS | MINUS) clan
 # clan -> faktor | clan (PUTA | KROZ) faktor
 # faktor -> baza | baza NA faktor | MINUS faktor
-# baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR
+# baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR | DULJINA lista
 
 # lista -> UOTVR (elementi | '') UZTVR | AVAR
 # elementi -> element | element ZAREZ elementi
@@ -111,6 +117,8 @@ class P(Parser):
         elif self > {T.POMAKNI, T.ALARM}: self.akcija()
         elif self > {T.PREPREKA, T.COVJEK}: self.ocitavanje()
         elif self > T.ISPIS: return self.ispis()
+        elif self > T.UBACI_NA_KRAJ: return self.ubaci()
+        elif self > T.IZBACI_SA_KRAJA: return self.izbaci()
         elif br := self >> T.BREAK:
             self >> T.TOCKAZ
             return br
@@ -118,9 +126,42 @@ class P(Parser):
     def ispis(self):
         self >> T.ISPIS
         if self > {T.AVAR, T.UOTVR}: ispisant = self.lista()
+        elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ispisant = self.log() 
         else: ispisant = self.broj()
+        #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
         self >> T.TOCKAZ
         return Ispis(ispisant)
+
+    def ubaci(self):
+        self >> T.UBACI_NA_KRAJ
+        self >> T.OOTVR
+        lista = self >> T.AVAR
+        self >> T.ZAREZ
+
+        if self > {T.AVAR, T.UOTVR}: ubacenik = self.lista()
+        elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ubacenik = self.log() 
+        else: ubacenik = self.broj()
+        #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
+        self >> T.OZTVR
+        self >> T.TOCKAZ
+        return Ubaci(lista, ubacenik)
+
+    def izbaci(self, pozvana = False):
+        self >> T.IZBACI_SA_KRAJA
+        self >> T.OOTVR
+        lista = self >> T.AVAR
+        self >> T.OZTVR
+        if not pozvana:
+            self >> T.TOCKAZ
+        return Izbaci(lista)
+    
+    def duljina(self): #smije se koristiti samo tako da se pridruzi nekoj varijabli
+        self >> T.DULJINA
+        self >> T.OOTVR
+        lista = self >> T.AVAR
+        self >> T.OZTVR
+
+        return Duljina(lista)
 
     def akcija(self):
         if self >= T.POMAKNI:
@@ -143,7 +184,9 @@ class P(Parser):
     def pridruzivanje(self):
         varijabla = self >> {T.BVAR, T.LVAR, T.AVAR}
         self >> T.JEDNAKO
-        if varijabla ^ T.BVAR: pridruzeno =  self.broj()
+        if self > T.IZBACI_SA_KRAJA:
+            pridruzeno = self.izbaci(True)
+        elif varijabla ^ T.BVAR: pridruzeno =  self.broj()
         elif varijabla ^ T.LVAR: pridruzeno =  self.izraz()
         elif varijabla ^ T.AVAR: pridruzeno = self.lista()
         self >> T.TOCKAZ
@@ -170,7 +213,7 @@ class P(Parser):
     def blok(self):
         if self >= T.VOTVR:
             blok = []
-            while not self >= T.VOTVR:
+            while not self >= T.VZTVR:
                 blok.append(self.naredba())
         else: blok = [self.naredba()]
         return blok
@@ -180,18 +223,19 @@ class P(Parser):
         else:
             self >> T.UOTVR
             if self >= T.UZTVR:
-                return Lista([])
+                return Lista(nenavedeno, []) #TODO karlo dodao, nisam siguran zašto Lista prima dva argumenta
             popis = self.elementi()
             self >> T.UZTVR
             return Lista(nenavedeno, popis)
     
     def elementi(self):
         lista = [self.element()]
-        while self >= T.ZAREZ: lista. append(self.element())
+        while self >= T.ZAREZ: lista.append(self.element())
         return lista
 
     def element(self):
-        if val := self >= {T.ISTINA, T.LAZ, T.NEODLUCNO, T.AVAR}: return val
+        if self > {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR}: return self.izraz()
+        if val := self >= T.AVAR: return val
         elif self > T.UOTVR: return self.lista()
         else: return self.broj()
 
@@ -208,7 +252,6 @@ class P(Parser):
     def konjunkt(self):
         if self >= T.NOT:
             return Negacija(self.konjunkt())
-            #izgledna greška
         elif self > {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR, T.UIZRAZ, T.OOTVR}:
             first_log = self.log()
             if op := self >= T.JEDNAKO:
@@ -266,6 +309,8 @@ class P(Parser):
         if broj := self >= T.BROJ: return broj
         elif varijabla := self >= T.BVAR:
             return varijabla
+        elif self > T.DULJINA:
+            return self.duljina()
         elif self >= T.OOTVR:
             u_zagradi = self.broj()
             self >> T.OZTVR
@@ -323,6 +368,21 @@ class Lista(AST('var lista')):
     def vrijednost(self, mem): 
         if self.var ^ T.AVAR: return self.var.vrijednost(mem)
         else: return [element.vrijednost(mem) for element in self.lista]
+
+class Ubaci(AST('lista element')):
+    def izvrši(self, mem):
+        self.lista.vrijednost(mem).append(self.element.vrijednost(mem))
+        return True
+
+class Izbaci(AST('lista')):
+    def izvrši(self, mem):
+        self.lista.vrijednost(mem).pop()
+    def vrijednost(self,mem):
+        return self.lista.vrijednost(mem).pop()
+
+class Duljina(AST('lista')):
+    def vrijednost(self, mem):
+        return len(self.lista.vrijednost(mem)) 
 
 class LogUBroj(AST('izraz')):
     def vrijednost(self, mem):
@@ -387,129 +447,6 @@ class Op(AST('operator lijevo desno')):
 
 class Prekid(NelokalnaKontrolaToka): pass
 
-program = '''
-for i = 0 to 4 cigo$ = istina;
 
-if cigo$ {
-    for i = 0 to 3 {
-        alarm;
-        coVjek;
-    }
-    a3KvaR$ = iStiNa
-    
-    if a3KvaR$ <> neodlucno and a3KvaR$ <> laz    
-        nekaLista€ = [3, 7, [True, False, 69], 5]
-    
-    for i = 3 to 4
-        pomakni dolje;
-    
-    prepreka;
-}
-
-'''
-izrazi = []
-izrazi.append('''
-Istina and Laz
-''')
-
-
-def f(izraz):
-    P.tokeniziraj(izraz)
-    ast = P(izraz)
-    print(ast.izvrši(okolina={}))
-
-    prikaz(ast)
-
-izrazi.append('''
-Istina and Laz or Istina
-''')
-
-izrazi.append('''
-2<3
-''')
-
-izrazi.append('''
-not Istina
-''')
-
-izrazi.append('''
-Istina = Istina
-''')
-
-izrazi.append('''
-2>3 and Laz or 4<5 
-''')
-
-izrazi.append('''
-(3<4) = Istina 
-''')
-
-izrazi.append('''
-not not 2>3
-''')
-
-izrazi.append('''
-Istina = Laz
-''')
-
-izrazi.append('''
-3 + 5
-''')
-
-izrazi.append('''
-3 * 5 * 2 + 4
-''')
-
-izrazi.append('''
- 3 / 5
-''')
-
-izrazi.append('''
-3 * broj(laz) 
-''')
-
-izrazi.append('''
-3 * broj(laz) + broj(istina)
-''')
-
-izrazi.append('''
-2+-3
-''')
-
-izrazi.append('''
-(2 * (3 + 4 ^ 2) - 2)
-''')
-
-izrazi.append('''
-a = 5;
-b = 3;
-c = a + b * 2;
-''')
-
-izrazi.append('''
-lista€ = [2 , istina, [], [3, 5, []]];
-''')
-
-izrazi.append('''
-izraz$ = True or lAZ and not False;
-''')
-
-izrazi.append('''
-a = 5 * 10;
-ispis a;
-''')
-
-izrazi.append('''
-a = 3;
-l€ = [2, istina, faLSE, [a, 5 * 3 - 2 / 1]];
-ispis l€;
-''')
-
-f(izrazi[-1])
-# for izraz in izrazi:
-#     try:
-#         f(izraz)
-#     except SintaksnaGreška as sg:
-#         print("greška")
-#         print(izraz)
-#         break
+if __name__ == "__main__":
+    pass
