@@ -153,12 +153,8 @@ if __name__ == "__main__":
     izrazi.append('''
     x = 2;
     b$ = Istina and (3 <= x + 1);
-    ispis b$;
     ''')
 
-    izrazi.append('''
-    ispis neodlucno;
-    ''')
 
     izrazi.append('''
     l€ = [1, 2];
@@ -180,7 +176,6 @@ if __name__ == "__main__":
     ispis l€;
     ubaci(l€, [1,2,3]);
     ispis l€;
-    ubaci(l€, Laz);
     ispis l€;
     '''
     )
@@ -190,10 +185,9 @@ if __name__ == "__main__":
     l€ = [];
     x = 3*5/4;
     y$ = (x + 3 >= 3) or ( Laz and Istina);
-    lista€ = [3, 2, y$];
+    lista€ = [3, 2];
 
     ubaci(l€, x);
-    ubaci(l€, y$);
     ubaci(l€, lista€);
 
     ispis l€;
