@@ -28,11 +28,11 @@ if __name__ == "__main__":
     # ''')
 
 
-    def f(izraz):
+    def f(izraz, okolina):
         P.tokeniziraj(izraz)
         ast = P(izraz)
         prikaz(ast)
-        ast.izvrši(okolina={})
+        ast.izvršiNaOkolini(okolina)
 
     # izrazi.append('''
     # Istina and Laz or Istina
@@ -229,7 +229,71 @@ if __name__ == "__main__":
     #f(izrazi[-1])
     for izraz in izrazi:
         try:
-            f(izraz)
+            f(izraz, {})
+        except SintaksnaGreška as sg:
+            print("greška")
+            print(izraz)
+            break
+    
+    primjeriSOkolinom = []
+
+    primjeriSOkolinom.append(
+        ('''
+        alarm;
+        ''',
+        {
+            'okolina' : [
+                list('...'),
+                list('...'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    )
+
+    primjeriSOkolinom.append(
+        ('''
+        ispis okolina;
+        if not prepreka dolje {
+            pomakni down;
+        }
+        ispis okolina;
+        ''',
+        {
+            'okolina' : [
+                list('.##'),
+                list('...'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    )
+
+    primjeriSOkolinom.append(
+        ('''
+        for( i = 1 to 10) {
+            if Covjek {
+                alarm;
+                break;
+            }
+            pomakni desno;
+        }
+        ''',
+        {
+            'okolina' : [
+                list('.....C....'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    )
+    
+    for kod, okolina in primjeriSOkolinom:
+        try:
+            f(kod, okolina)
         except SintaksnaGreška as sg:
             print("greška")
             print(izraz)

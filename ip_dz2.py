@@ -1,5 +1,6 @@
 from vepar import *
 import fractions
+import copy
 
 class T(TipoviTokena):
     PLUS, MINUS, PUTA, KROZ, NA = '+-*/^'
@@ -13,16 +14,16 @@ class T(TipoviTokena):
 
     class GORE(Token):
         literal = 'gore'
-        def vrijednost(self, mem): return (0, -1)
+        def vrijednost(self, mem): return (-1, 0)
     class DOLJE(Token):
         literal = 'dolje'
-        def vrijednost(self, mem): return (0, 1)
+        def vrijednost(self, mem): return (1, 0)
     class LIJEVO(Token):
         literal = 'lijevo'
-        def vrijednost(self, mem): return (-1, 0)
+        def vrijednost(self, mem): return (0, -1)
     class DESNO(Token):
         literal = 'desno'
-        def vrijednost(self, mem): return (1, 0)
+        def vrijednost(self, mem): return (0, 1)
 
     class ISTINA(Token):
         literal = 'istina'
@@ -37,6 +38,18 @@ class T(TipoviTokena):
     class BREAK(Token):
         literal = 'break'
         def izvrši(self, mem): raise Prekid
+
+    # ispisivanje okoline bi se trebalo koristiti u potrebe testiranja
+    class OKOLINA(Token):
+        literal = 'okolina'
+        def vrijednost(self, mem): 
+            okolina = copy.deepcopy(mem['okolina'])
+            okolina[mem['posX']][mem['posY']] = 'R'
+            ret = ""
+            for element in okolina:
+                ret += ''.join(element) + '\n'
+            return ret
+
 
     class BROJ(Token):
         def vrijednost(self, mem): return fractions.Fraction(self.sadržaj)
@@ -75,7 +88,7 @@ def rikose(lex):
 
 ### BKG
 # start = naredbe -> naredba*
-# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | ocitavanje | BREAK TOCKAZ | ubaci TOCKAZ | izbaci TOCKAZ | ispis
+# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | BREAK TOCKAZ | ubaci TOCKAZ | izbaci TOCKAZ | ispis
 
 # ubaci -> UBACI_NA_KRAJ OOTVR AVAR ZAREZ lista OZTVR | UBACI_NA_KRAJ OOTVR AVAR ZAREZ broj OZTVR | UBACI_NA_KRAJ OOTVR AVAR ZAREZ izraz OZTVR
 # izbaci -> IZBACI_SA_KRAJA OOTVR AVAR OZTVR
@@ -86,14 +99,14 @@ def rikose(lex):
 # grananje -> IF izraz blok
 # blok -> naredba | VOTVR naredbe VZTVR
 # akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
-# ocitavanje -> PREPREKA smjer TOCKAZ  | COVJEK TOCKAZ 
+# ocitavanje -> PREPREKA smjer | COVJEK 
 # smjer -> GORE | DOLJE | LIJEVO | DESNO
-# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ | ISPIS log TOCKAZ 
+# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ | ISPIS log TOCKAZ | ISPIS OKOLINA TOCKAZ
 
 # izraz -> disjunkt | izraz OR dijsunkt
 # disjunkt -> konjunkt | disjunkt AND konjunkt
 # konjunkt -> NOT konjunkt | konjunkt | broj usporedba+ broj | log JEDNAKO log
-# log -> LVAR | ISTINA | LAZ | NEODLUCNO | UIZRAZ OOTVR broj OZTVR | OOTVR izraz OZTVR
+# log -> LVAR | ISTINA | LAZ | NEODLUCNO | ocitavanje | UIZRAZ OOTVR broj OZTVR | OOTVR izraz OZTVR
 
 # broj -> clan | broj (PLUS | MINUS) clan
 # clan -> faktor | clan (PUTA | KROZ) faktor
@@ -114,8 +127,7 @@ class P(Parser):
         if self > {T.BVAR, T.LVAR, T.AVAR}: return self.pridruzivanje()
         elif self > T.FOR: return self.petlja()
         elif self > T.IF: return self.grananje()
-        elif self > {T.POMAKNI, T.ALARM}: self.akcija()
-        elif self > {T.PREPREKA, T.COVJEK}: self.ocitavanje()
+        elif self > {T.POMAKNI, T.ALARM}: return self.akcija()
         elif self > T.ISPIS: return self.ispis()
         elif self > T.UBACI_NA_KRAJ: return self.ubaci()
         elif self > T.IZBACI_SA_KRAJA: return self.izbaci()
@@ -125,7 +137,8 @@ class P(Parser):
     
     def ispis(self):
         self >> T.ISPIS
-        if self > {T.AVAR, T.UOTVR}: ispisant = self.lista()
+        if self > T.OKOLINA: ispisant = self >> T.OKOLINA
+        elif self > {T.AVAR, T.UOTVR}: ispisant = self.lista()
         elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ispisant = self.log() 
         else: ispisant = self.broj()
         #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
@@ -175,10 +188,8 @@ class P(Parser):
     def ocitavanje(self):
         if self >= T.PREPREKA:
             pomak = self >> {T.GORE, T.DOLJE, T.LIJEVO, T.DESNO}
-            self >> T.TOCKAZ
             return Prepreka(pomak)
         elif self >> T.COVJEK:
-            self >> T.TOCKAZ
             return Covjek()
 
     def pridruzivanje(self):
@@ -257,6 +268,8 @@ class P(Parser):
             if op := self >= T.JEDNAKO:
                 return Usporedba(first_log, self.log(), nenavedeno, nenavedeno, op)
             return first_log
+        elif self > {T.COVJEK, T.PREPREKA}:
+            return self.ocitavanje()
         elif broj := self.broj():
             usporedba = {T.MANJE, T.VECE, T.JEDNAKO}
             manje = vece = jednako = nenavedeno
@@ -325,8 +338,10 @@ class P(Parser):
     lexer = rikose
 
 class Program(AST('naredbe')):
-    def izvrši(self, okolina):
-        mem = Memorija(okolina)
+    def izvršiNaOkolini(self, okolina):
+        self.izvrši(Memorija(okolina))
+
+    def izvrši(self, mem):
         try:  # break izvan petlje je zapravo sintaksna greška - kompliciranije
             for naredba in self.naredbe: naredba.izvrši(mem)
         except Prekid: raise SemantičkaGreška('nedozvoljen break izvan petlje')
@@ -336,13 +351,28 @@ class Ispis(AST('ispisant')):
         print(self.ispisant.vrijednost(mem))
 
 class Pomakni(AST('pomak')): 
-    def izvrši(self, mem): pass
+    def izvrši(self, mem): 
+        if mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '#':
+            print('Nemogu tamo jer je tamo prepreka :(')
+        else:   
+            mem['posX'] += self.pomak.vrijednost(mem)[0]
+            mem['posY'] += self.pomak.vrijednost(mem)[1]
+
 class Alarm(AST('')): 
-    def izvrši(self, mem): pass
+    def izvrši(self, mem): 
+        print("ALARM!!!")
+
 class Prepreka(AST('pomak')):
-    def izvrši(self, mem): pass
+    def vrijednost(self, mem): 
+        if mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '#':
+            return True
+        return False
+
 class Covjek(AST('')): 
-    def izvrši(self, mem): pass
+    def vrijednost(self, mem): 
+        if mem['okolina'][mem['posX']][mem['posY']] == 'C':
+            return True
+        return False
 
 class Pridruzivanje(AST('varijabla pridruzeno')):
     def izvrši(self, mem): 
@@ -355,13 +385,15 @@ class Petlja(AST('varijabla pocetak kraj naredbe')):
         korak = 1 if p <= k else -1
         mem[kv] = p
         while (mem[kv] - k) * korak <= 0:
-            for naredba in self.naredbe: naredba.izvrši(mem)
+            try: 
+                for naredba in self.naredbe: naredba.izvrši(mem)
+            except Prekid: break
             mem[kv] += korak
 
 class Grananje(AST('uvjet naredbe')):
     def izvrši(self, mem): 
         b = self.uvjet.vrijednost(mem)
-        if b == ~0:
+        if b == True:
             for naredba in self.naredbe: naredba.izvrši(mem)
     
 class Lista(AST('var lista')):

@@ -5,3 +5,4 @@
 # rekurzija u OP radi probleme (probajmo to iterativno ili viditi kako ovo radi) ?VJV RIJESENO?, treba testirat
 # ocitavanja nebi smjela bit naredbe jer one nista ne rade, one ispituju okolinu. Tako da bi promjenio gramatiku i dodao ocitavanja u najdublju razinu izraza tj log
 # pazit u potenciranju da ne izademo iz racionalnih brojeva npr. (2 ^ (1 / 2))
+# slozit logiku s neodlucno da funkcionira kak spada
