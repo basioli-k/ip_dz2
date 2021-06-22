@@ -10,7 +10,7 @@ class T(TipoviTokena):
     FOR, IF, TO, AND, OR, NOT = 'for', 'if', 'to', 'and', 'or', 'not'
     ISPIS, UBROJ, UIZRAZ = 'ispis', 'broj', 'izraz'
     POMAKNI, PREPREKA, COVJEK, ALARM = 'pomakni', 'prepreka', 'covjek', 'alarm'
-    UBACI_NA_KRAJ, IZBACI_SA_KRAJA, DULJINA = 'ubaci', 'izbaci', 'duljina'
+    UBACI, IZBACI, DULJINA = 'ubaci', 'izbaci', 'duljina'
 
     class GORE(Token):
         literal = 'gore'
@@ -90,8 +90,8 @@ def rikose(lex):
 # start = naredbe -> naredba*
 # naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | BREAK TOCKAZ | ubaci TOCKAZ | izbaci TOCKAZ | ispis
 
-# ubaci -> UBACI_NA_KRAJ OOTVR AVAR ZAREZ lista OZTVR | UBACI_NA_KRAJ OOTVR AVAR ZAREZ broj OZTVR | UBACI_NA_KRAJ OOTVR AVAR ZAREZ izraz OZTVR
-# izbaci -> IZBACI_SA_KRAJA OOTVR AVAR OZTVR
+# ubaci -> UBACI OOTVR AVAR ZAREZ lista OZTVR | UBACI OOTVR AVAR ZAREZ broj OZTVR
+# izbaci -> IZBACI OOTVR AVAR OZTVR
 # duljina -> DULJINA OOTVR lista OZTVR
 
 # pridruzivanje -> BVAR JEDNAKO broj | LVAR JEDNAKO izraz | AVAR JEDNAKO lista | BVAR JEDNAKO izbaci | AVAR JEDNAKO izbaci | LVAR JEDNAKO izbaci
@@ -101,7 +101,7 @@ def rikose(lex):
 # akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
 # ocitavanje -> PREPREKA smjer | COVJEK 
 # smjer -> GORE | DOLJE | LIJEVO | DESNO
-# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ | ISPIS log TOCKAZ | ISPIS OKOLINA TOCKAZ
+# ispis -> ISPIS broj TOCKAZ | ISPIS lista TOCKAZ | ISPIS OKOLINA TOCKAZ
 
 # izraz -> disjunkt | izraz OR dijsunkt
 # disjunkt -> konjunkt | disjunkt AND konjunkt
@@ -129,8 +129,8 @@ class P(Parser):
         elif self > T.IF: return self.grananje()
         elif self > {T.POMAKNI, T.ALARM}: return self.akcija()
         elif self > T.ISPIS: return self.ispis()
-        elif self > T.UBACI_NA_KRAJ: return self.ubaci()
-        elif self > T.IZBACI_SA_KRAJA: return self.izbaci()
+        elif self > T.UBACI: return self.ubaci()
+        elif self > T.IZBACI: return self.izbaci()
         elif br := self >> T.BREAK:
             self >> T.TOCKAZ
             return br
@@ -139,20 +139,20 @@ class P(Parser):
         self >> T.ISPIS
         if self > T.OKOLINA: ispisant = self >> T.OKOLINA
         elif self > {T.AVAR, T.UOTVR}: ispisant = self.lista()
-        elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ispisant = self.log() 
+        #elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ispisant = self.log() 
         else: ispisant = self.broj()
         #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
         self >> T.TOCKAZ
         return Ispis(ispisant)
 
     def ubaci(self):
-        self >> T.UBACI_NA_KRAJ
+        self >> T.UBACI
         self >> T.OOTVR
         lista = self >> T.AVAR
         self >> T.ZAREZ
 
         if self > {T.AVAR, T.UOTVR}: ubacenik = self.lista()
-        elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ubacenik = self.log() 
+        #elif self > {T.LVAR, T.ISTINA, T.LAZ, T.NEODLUCNO}: ubacenik = self.log() 
         else: ubacenik = self.broj()
         #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
         self >> T.OZTVR
@@ -160,7 +160,7 @@ class P(Parser):
         return Ubaci(lista, ubacenik)
 
     def izbaci(self, pozvana = False):
-        self >> T.IZBACI_SA_KRAJA
+        self >> T.IZBACI
         self >> T.OOTVR
         lista = self >> T.AVAR
         self >> T.OZTVR
@@ -195,7 +195,7 @@ class P(Parser):
     def pridruzivanje(self):
         varijabla = self >> {T.BVAR, T.LVAR, T.AVAR}
         self >> T.JEDNAKO
-        if self > T.IZBACI_SA_KRAJA:
+        if self > T.IZBACI:
             pridruzeno = self.izbaci(True)
         elif varijabla ^ T.BVAR: pridruzeno =  self.broj()
         elif varijabla ^ T.LVAR: pridruzeno =  self.izraz()
