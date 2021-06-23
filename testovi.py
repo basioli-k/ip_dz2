@@ -220,7 +220,13 @@ if __name__ == "__main__":
     }
     ''')
 
-    #f(izrazi[-1])
+    #testiranje trovaljane logike
+    izrazi.append('''
+    c$ = neodlucno;
+    b$ = Istina and neodlucno and c$;
+    ''')
+
+    #f(izrazi[-1], {})
     for izraz in izrazi:
         try:
             f(izraz, {})

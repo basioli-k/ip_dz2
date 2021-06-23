@@ -1,6 +1,7 @@
 from vepar import *
 import fractions
 import copy
+import random
 
 class T(TipoviTokena):
     PLUS, MINUS, PUTA, KROZ, NA = '+-*/^'
@@ -366,6 +367,9 @@ class Prepreka(AST('pomak')):
     def vrijednost(self, mem): 
         if mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '#':
             return True
+            #nisam siguran
+        # elif mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '?':
+        #     return nenavedeno
         return False
 
 class Covjek(AST('')): 
@@ -394,6 +398,8 @@ class Grananje(AST('uvjet naredbe')):
     def izvrši(self, mem): 
         b = self.uvjet.vrijednost(mem)
         if b == True:
+            for naredba in self.naredbe: naredba.izvrši(mem)
+        elif b == nenavedeno and random.randint(0, 1) == 1: #robot nasumično bira hoće li ili neće riskirati
             for naredba in self.naredbe: naredba.izvrši(mem)
     
 class Lista(AST('var lista')):
@@ -429,14 +435,35 @@ class BrojULog(AST('broj')):
 
 class Disjunkcija(AST('disjunkti')):
     def vrijednost(self, mem):
-        return any([disj.vrijednost(mem) for disj in self.disjunkti])
+        neodlucno = False
+        for disj in self.disjunkti:
+            if disj.vrijednost(mem) == nenavedeno:
+                neodlucno = True
+
+        if any([disj.vrijednost(mem) for disj in self.disjunkti]):
+            return True
+        elif neodlucno:
+            return nenavedeno
+        return False
 
 class Konjunkcija(AST('konjunkti')):
     def vrijednost(self, mem):
-        return all([konj.vrijednost(mem) for konj in self.konjunkti])
+        neodlucno = False
+        for konj in self.konjunkti:
+            if konj.vrijednost(mem) == nenavedeno:
+                neodlucno = True
+
+        if not all([konj.vrijednost(mem) for konj in self.konjunkti]):
+            return False
+        elif neodlucno:
+            return nenavedeno
+        return True
         
 class Negacija(AST('log_vrijednost')):
     def vrijednost(self, mem):
+        if self.log_vrijednost.vrijednost(mem) == nenavedeno:
+            return nenavedeno
+
         return not self.log_vrijednost.vrijednost(mem)
 
 class Usporedba(AST('lijevo desno manje veće jednako')):
