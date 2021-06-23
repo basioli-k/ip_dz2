@@ -352,9 +352,14 @@ class Ispis(AST('ispisant')):
         print(self.ispisant.vrijednost(mem))
 
 class Pomakni(AST('pomak')): 
-    def izvrši(self, mem): 
-        if mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '#':
-            print('Nemogu tamo jer je tamo prepreka :(')
+    def izvrši(self, mem):
+        novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
+        novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
+
+        if 0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0]):
+            print("Ne mogu tamo jer Avirović ne zna gramatiku :(") 
+        elif mem['okolina'][novi_x][novi_y] == '#':
+            print('Ne mogu tamo jer je tamo prepreka :(')
         else:   
             mem['posX'] += self.pomak.vrijednost(mem)[0]
             mem['posY'] += self.pomak.vrijednost(mem)[1]
@@ -365,7 +370,12 @@ class Alarm(AST('')):
 
 class Prepreka(AST('pomak')):
     def vrijednost(self, mem): 
-        if mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '#':
+        novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
+        novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
+
+        if 0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0]):
+            return False
+        if mem['okolina'][novi_x][novi_y] == '#':
             return True
             #nisam siguran
         # elif mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '?':

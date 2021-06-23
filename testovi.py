@@ -290,6 +290,23 @@ if __name__ == "__main__":
         }
         )
     )
+
+    primjeriSOkolinom.append(
+        ('''
+            pomakni lijevo;
+        ''',
+        {
+            'okolina' : [
+                list('.....C....'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    )
+
+    # k, o = primjeriSOkolinom[-1]
+    # f(k, o)
     
     for kod, okolina in primjeriSOkolinom:
         try:
