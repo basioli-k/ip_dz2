@@ -356,7 +356,7 @@ class Pomakni(AST('pomak')):
         novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
         novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
 
-        if 0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0]):
+        if not (0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0])):
             print("Ne mogu tamo jer Avirović ne zna gramatiku :(") 
         elif mem['okolina'][novi_x][novi_y] == '#':
             print('Ne mogu tamo jer je tamo prepreka :(')
@@ -373,7 +373,7 @@ class Prepreka(AST('pomak')):
         novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
         novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
 
-        if 0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0]):
+        if not(0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0])):
             return False
         if mem['okolina'][novi_x][novi_y] == '#':
             return True
