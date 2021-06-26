@@ -232,6 +232,7 @@ if __name__ == "__main__":
             f(izraz, {})
         except SintaksnaGreška as sg:
             print("greška")
+            print(sg)
             print(izraz)
             break
     
@@ -255,7 +256,7 @@ if __name__ == "__main__":
     primjeriSOkolinom.append(
         ('''
         ispis okolina;
-        if not prepreka dolje {
+        if (not prepreka dolje ) {
             pomakni down;
         }
         ispis okolina;
@@ -274,7 +275,7 @@ if __name__ == "__main__":
     primjeriSOkolinom.append(
         ('''
         for( i = 1 to 10) {
-            if Covjek {
+            if (Covjek) {
                 alarm;
                 break;
             }
@@ -305,6 +306,22 @@ if __name__ == "__main__":
         )
     )
 
+    primjeriSOkolinom.append(
+        ('''
+            break;
+            a = 3;
+            b = 4;
+            ispis a;
+        ''',
+        {
+            'okolina' : [
+                list('.?C....'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    )
     # k, o = primjeriSOkolinom[-1]
     # f(k, o)
     
@@ -313,5 +330,5 @@ if __name__ == "__main__":
             f(kod, okolina)
         except SintaksnaGreška as sg:
             print("greška")
-            print(izraz)
+            print(kod)
             break

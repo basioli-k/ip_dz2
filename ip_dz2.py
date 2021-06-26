@@ -34,7 +34,7 @@ class T(TipoviTokena):
         def vrijednost(self, mem): return False
     class NEODLUCNO(Token):
         literal = 'neodlucno'
-        def vrijednost(self, mem): return nenavedeno #TODO koristimo li ovo igdje? ako ne možda bi mogli staviti "neodlucno" zbog ispisa
+        def vrijednost(self, mem): return nenavedeno
 
     class BREAK(Token):
         literal = 'break'
@@ -97,7 +97,7 @@ def rikose(lex):
 
 # pridruzivanje -> BVAR JEDNAKO broj | LVAR JEDNAKO izraz | AVAR JEDNAKO lista | BVAR JEDNAKO izbaci | AVAR JEDNAKO izbaci | LVAR JEDNAKO izbaci
 # petlja -> FOR OOTVR BVAR JEDNAKO broj TO broj OZTVR blok
-# grananje -> IF izraz blok
+# grananje -> IF OOTVR izraz OZTVR blok
 # blok -> naredba | VOTVR naredbe VZTVR
 # akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
 # ocitavanje -> PREPREKA smjer | COVJEK 
@@ -106,8 +106,9 @@ def rikose(lex):
 
 # izraz -> disjunkt | izraz OR dijsunkt
 # disjunkt -> konjunkt | disjunkt AND konjunkt
-# konjunkt -> NOT konjunkt | konjunkt | broj usporedba+ broj | log JEDNAKO log
+# konjunkt -> NOT konjunkt | log | broj usporedba+ broj | log JEDNAKO log 
 # log -> LVAR | ISTINA | LAZ | NEODLUCNO | ocitavanje | UIZRAZ OOTVR broj OZTVR | OOTVR izraz OZTVR
+# usporedba -> MANJE | VECE | JEDNAKO
 
 # broj -> clan | broj (PLUS | MINUS) clan
 # clan -> faktor | clan (PUTA | KROZ) faktor
@@ -218,7 +219,9 @@ class P(Parser):
     
     def grananje(self):
         self >> T.IF
+        self >> T.OOTVR
         uvjet = self.izraz()
+        self >> T.OZTVR
         naredbe = self.blok()
         return Grananje(uvjet, naredbe)
         
@@ -235,7 +238,7 @@ class P(Parser):
         else:
             self >> T.UOTVR
             if self >= T.UZTVR:
-                return Lista(nenavedeno, []) #TODO karlo dodao, nisam siguran zašto Lista prima dva argumenta
+                return Lista(nenavedeno, []) 
             popis = self.elementi()
             self >> T.UZTVR
             return Lista(nenavedeno, popis)
@@ -264,13 +267,11 @@ class P(Parser):
     def konjunkt(self):
         if self >= T.NOT:
             return Negacija(self.konjunkt())
-        elif self > {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR, T.UIZRAZ, T.OOTVR}:
+        elif self > {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR, T.UIZRAZ, T.OOTVR, T.COVJEK, T.PREPREKA}:
             first_log = self.log()
             if op := self >= T.JEDNAKO:
                 return Usporedba(first_log, self.log(), nenavedeno, nenavedeno, op)
             return first_log
-        elif self > {T.COVJEK, T.PREPREKA}:
-            return self.ocitavanje()
         elif broj := self.broj():
             usporedba = {T.MANJE, T.VECE, T.JEDNAKO}
             manje = vece = jednako = nenavedeno
@@ -288,7 +289,9 @@ class P(Parser):
                 #TODO smisli bolji error za hvatat        
 
     def log(self):
-        if self >= T.UIZRAZ:
+        if self > {T.COVJEK, T.PREPREKA}:
+            return self.ocitavanje()
+        elif self >= T.UIZRAZ:
             self >> T.OOTVR
             broj = self.broj()
             self >> T.OZTVR
@@ -300,8 +303,6 @@ class P(Parser):
             
         return self >> {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR}
 
-    
-    #todo sredi član da bude
     def broj(self):
         t = self.član()
         while op := self >= {T.PLUS, T.MINUS}: t = Op(op, t, self.član())
@@ -357,7 +358,7 @@ class Pomakni(AST('pomak')):
         novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
 
         if not (0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0])):
-            print("Ne mogu tamo jer Avirović ne zna gramatiku :(") 
+            print('Ne mogu tamo jer je to van okoline :(')
         elif mem['okolina'][novi_x][novi_y] == '#':
             print('Ne mogu tamo jer je tamo prepreka :(')
         else:   
@@ -374,12 +375,11 @@ class Prepreka(AST('pomak')):
         novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
 
         if not(0 <= novi_x and novi_x < len(mem['okolina']) and 0 <= novi_y and novi_y < len(mem['okolina'][0])):
-            return False
-        if mem['okolina'][novi_x][novi_y] == '#':
             return True
-            #nisam siguran
-        # elif mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '?':
-        #     return nenavedeno
+        elif mem['okolina'][novi_x][novi_y] == '#':
+            return True
+        elif mem['okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '?':
+            return nenavedeno
         return False
 
 class Covjek(AST('')): 
@@ -463,7 +463,7 @@ class Konjunkcija(AST('konjunkti')):
             if konj.vrijednost(mem) == nenavedeno:
                 neodlucno = True
 
-        if not all([konj.vrijednost(mem) for konj in self.konjunkti]):
+        if not all([konj.vrijednost(mem) for konj in self.konjunkti if konj.vrijednost(mem) != nenavedeno]):
             return False
         elif neodlucno:
             return nenavedeno
@@ -483,9 +483,6 @@ class Usporedba(AST('lijevo desno manje veće jednako')):
                    or (self.veće and l > d) or False)
 
 class Op(AST('operator lijevo desno')):
-    # TODO: Trebalo bi maknut ovu funkciju
-    def izvrši(self, mem):
-        return self.vrijednost(mem)
     def vrijednost(self, mem):
         o = self.operator
         print(o, self.lijevo, self.desno)
