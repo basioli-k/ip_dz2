@@ -110,20 +110,20 @@ if __name__ == "__main__":
 
     izrazi.append('''
     a = 5 * 10;
-    ispis a;
+    ispis(a);
     ''')
 
     izrazi.append('''
     a = 3;
     l€ = [2, istina, faLSE, [a, 5 * 3 - 2 / 1]];
-    ispis l€;
+    ispis(l€);
     ''')
 
     izrazi.append('''
     a = 3;
     b = 4;
     c = a + b;
-    ispis c;
+    ispis(c);
     '''
     )
 
@@ -132,22 +132,22 @@ if __name__ == "__main__":
     for (i = 3 to 36) {
         a = a + i;
     }
-    ispis a;
+    ispis(a);
     '''
     )
 
     izrazi.append('''
     x=2;
     b$ = Istina and (3 <= x + 1);
-    ispis broj(b$);
+    ispis(broj(b$));
     ''')
 
     izrazi.append('''
     x = 2;
     b$ = Istina and (3 <= x + 1);
     a€ = [3, 4, b$];
-    ispis a€;
-    ispis broj(b$);
+    ispis(a€);
+    ispis(broj(b$));
     ''')
 
     izrazi.append('''
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     for (x = 1 to 4){
         y$ = istina and ( x <= 2 );
         lista€ = [y$, x, l€, [Istina and Laz, 3 + 4^2]];
-        ispis lista€;
+        ispis(lista€);
     }
     ''')
 
@@ -169,14 +169,14 @@ if __name__ == "__main__":
     izrazi.append('''
     l€ = [];
     ubaci(l€, 1);
-    ispis l€;
+    ispis(l€);
     izbaci(l€);
-    ispis l€;
+    ispis(l€);
     ubaci(l€, 3+4);
-    ispis l€;
+    ispis(l€);
     ubaci(l€, [1,2,3]);
-    ispis l€;
-    ispis l€;
+    ispis(l€);
+    ispis(l€);
     '''
     )
 
@@ -190,13 +190,13 @@ if __name__ == "__main__":
     ubaci(l€, x);
     ubaci(l€, lista€);
 
-    ispis l€;
+    ispis(l€);
     ''')
 
     izrazi.append('''
     l€ = [1,2,3];
     n = duljina(l€);
-    ispis n;
+    ispis(n);
     ''')
 
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     n = duljina(l€);
     for (i = 1 to n){
         k = izbaci(l€);
-        ispis k;
+        ispis(k);
     }
     ''')
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
 
     for (i = 1 to duljina(l€)){
         k = izbaci(l€);
-        ispis k;
+        ispis(k);
     }
     ''')
 
@@ -224,6 +224,24 @@ if __name__ == "__main__":
     izrazi.append('''
     c$ = neodlucno;
     b$ = Istina and neodlucno and c$;
+    ''')
+
+    izrazi.append('''
+        l€ = [1,2,3,4,5,6];
+        dok (duljina(l€) <> 0){
+            a = izbaci(l€);
+            ispis(a);
+        } 
+    ''')
+
+    izrazi.append('''
+        #kad je neodlucno robot nasumicno bira hoce li proci ili ne
+        #ocekivano ispis je nista ili samo dio liste
+        l€ = [1,2,3,4,5,6];
+        dok (neodlucno and duljina(l€) <> 0){
+            a = izbaci(l€);
+            ispis(a);
+        } 
     ''')
 
     #f(izrazi[-1], {})
@@ -234,8 +252,8 @@ if __name__ == "__main__":
             print("greška")
             print(sg)
             print(izraz)
-            break
-    
+            exit() #da ne bi slucajno nastavio na daljnje primjer ako dode do greske
+
     primjeriSOkolinom = []
 
     primjeriSOkolinom.append(
@@ -243,6 +261,10 @@ if __name__ == "__main__":
         alarm;
         ''',
         {
+            'vidljiva_okolina' : [
+                list('...'),
+                list('...'),
+            ],
             'okolina' : [
                 list('...'),
                 list('...'),
@@ -255,13 +277,17 @@ if __name__ == "__main__":
 
     primjeriSOkolinom.append(
         ('''
-        ispis okolina;
+        ispis(okolina);
         if (not prepreka dolje ) {
             pomakni down;
         }
-        ispis okolina;
+        ispis(okolina);
         ''',
         {
+            'vidljiva_okolina' : [
+                list('.##'),
+                list('...'),
+            ],
             'okolina' : [
                 list('.##'),
                 list('...'),
@@ -283,6 +309,9 @@ if __name__ == "__main__":
         }
         ''',
         {
+            'vidljiva_okolina' : [
+                list('.....C....'),
+            ],
             'okolina' : [
                 list('.....C....'),
             ],
@@ -294,27 +323,39 @@ if __name__ == "__main__":
 
     primjeriSOkolinom.append(
         ('''
-            pomakni lijevo;
+            pomakni desno;
         ''',
         {
+            'vidljiva_okolina' : [
+                list('.#..C....'),
+            ],
             'okolina' : [
-                list('.....C....'),
+                list('.#..C....'),
             ],
             'posX' : 0,
             'posY' : 0
         }
         )
     )
+    
 
     primjeriSOkolinom.append(
         ('''
-            a = 3;
-            b = 4;
-            ispis a;
+            #ako više puta pokrenete ovaj program viditi ćete da će robot 
+            #nekada odabrati prelazak na upitnik a nekad nece
+            #kada se odluči za prelazak umrijeti će inače će preživjeti
+            
+            if (prepreka desno)
+                pomakni desno;
         ''',
-        {
+        {   #unatoč sjajno isprogramiranom robota, FER-ovci koji su napravili stroj zeznuli su senzore
+            #tako da robot ne zna uvijek razliku između čovjeka, praznog polja i sigurne smrti
+
+            'vidljiva_okolina': [
+                list('.?..C....'),
+            ],
             'okolina' : [
-                list('.?C....'),
+                list('.#..C....'),
             ],
             'posX' : 0,
             'posY' : 0
@@ -329,5 +370,9 @@ if __name__ == "__main__":
             f(kod, okolina)
         except SintaksnaGreška as sg:
             print("greška")
+            print(sg)
             print(kod)
             break
+        except SmrtRobota as sr:
+            print(sr)
+            #tu ne treba break robot je umro (ovo je poruka koju bi saznali da nam robot stvarno umre)

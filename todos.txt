@@ -1,7 +1,7 @@
 # todos
+
 # testirat sve!!
+
 # dodat komentare i mozda opise AST-ova
-# dodat while ( izraz ) blok
-# dodat da pisemo zagrede u ispisu
-# slozit smrt robota
+
 # dfs kao primjer
