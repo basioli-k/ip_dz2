@@ -3,5 +3,3 @@
 # testirat sve!!
 
 # dodat komentare i mozda opise AST-ova
-
-# dfs kao primjer
