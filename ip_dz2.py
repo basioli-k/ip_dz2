@@ -1,3 +1,4 @@
+from typing import Literal
 from vepar import *
 import fractions
 import copy
@@ -13,7 +14,8 @@ class T(TipoviTokena):
     TOCKAZ, ZAREZ = ';,'
     FOR, IF, TO, AND, OR, NOT, WHILE = 'for', 'if', 'to', 'and', 'or', 'not', "while"
     ISPIS, UBROJ, UIZRAZ = 'ispis', 'broj', 'izraz'
-    POMAKNI, PREPREKA, COVJEK, ALARM = 'pomakni', 'prepreka', 'covjek', 'alarm'
+    POMAKNI, PREPREKA, COVJEK, ALARM, KOORDINATE = 'pomakni', 'prepreka', 'covjek', 'alarm', 'koordinate'
+    POSTAVIKOORDINATE = 'postavikoordinate'
     UBACI, IZBACI, DULJINA = 'ubaci', 'izbaci', 'duljina'
 
     class GORE(Token):
@@ -48,7 +50,7 @@ class T(TipoviTokena):
         literal = 'okolina'
         def vrijednost(self, mem): 
             okolina = copy.deepcopy(mem['okolina'])
-            okolina[mem['posX']][mem['posY']] = 'R'
+            okolina[int(mem['posX'])][int(mem['posY'])] = 'R'
             ret = ""
             for element in okolina:
                 ret += ''.join(element) + '\n'
@@ -118,7 +120,7 @@ def rikose(lex):
 # faktor -> baza | baza NA faktor | MINUS faktor
 # baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR | DULJINA lista
 
-# lista -> UOTVR (elementi | '') UZTVR | AVAR
+# lista -> UOTVR (elementi | '') UZTVR | AVAR | KOORDINATE
 # elementi -> element | element ZAREZ elementi
 # element -> broj | ISTINA | LAZ | NEODLUCNO | lista
 
@@ -136,6 +138,7 @@ class P(Parser):
         elif self > T.ISPIS: return self.ispis()
         elif self > T.UBACI: return self.ubaci()
         elif self > T.IZBACI: return self.izbaci()
+        elif self >= T.POSTAVIKOORDINATE: return self.postavi_koordinate()
         elif br := self >> T.BREAK:
             self >> T.TOCKAZ
             return br
@@ -157,7 +160,7 @@ class P(Parser):
         lista = self >> T.AVAR
         self >> T.ZAREZ
 
-        if self > {T.AVAR, T.UOTVR}: ubacenik = self.lista()
+        if self > {T.AVAR, T.UOTVR, T.KOORDINATE}: ubacenik = self.lista()
         else: ubacenik = self.broj()
         #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
         self >> T.OZTVR
@@ -242,9 +245,19 @@ class P(Parser):
                 blok.append(self.naredba())
         else: blok = [self.naredba()]
         return blok
+
+    def postavi_koordinate(self):
+        self >> T.OOTVR
+        x = self.broj()
+        self >> T.ZAREZ
+        y = self.broj() 
+        self >> T.OZTVR
+        self >> T.TOCKAZ
+        return PostaviKoordinate(x, y)
         
     def lista(self):
         if avar := self >= T.AVAR: return Lista(avar, [])
+        if avar := self >= T.KOORDINATE: return Koordinate() 
         else:
             self >> T.UOTVR
             if self >= T.UZTVR:
@@ -261,7 +274,7 @@ class P(Parser):
     def element(self):
         if self > {T.ISTINA, T.LAZ, T.NEODLUCNO, T.LVAR}: return self.izraz()
         if val := self >= T.AVAR: return val
-        elif self > T.UOTVR: return self.lista()
+        elif self > {T.UOTVR, T.KOORDINATE}: return self.lista()
         else: return self.broj()
 
     def izraz(self):
@@ -345,6 +358,12 @@ class P(Parser):
 
 class Program(AST('naredbe')):
     def izvršiNaOkolini(self, okolina):
+        if "okolina" in okolina and "vidljiva_okolina" in okolina:
+            razlicite_dimenzije_redaka = len( set([len(redak) for redak in okolina["okolina"]]) |  set([len(redak) for redak in okolina["vidljiva_okolina"]]))
+
+            if len(okolina["okolina"]) !=  len(okolina["vidljiva_okolina"]) or razlicite_dimenzije_redaka != 1: 
+                assert False, "Dimenzije okoline i vidljive okoline se ne podudaraju."  
+        
         self.izvrši(Memorija(okolina))
 
     def izvrši(self, mem):
@@ -378,26 +397,30 @@ class Alarm(AST('')):
 #očitavanja
 class Prepreka(AST('pomak')):
     def vrijednost(self, mem): 
-        novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
-        novi_y = mem['posY'] + self.pomak.vrijednost(mem)[1]
-
+        #ovo sam pri dfsu skuzio slucajno
+        #cini mi se da se desilo jer funkcija postavikoordinate postavi
+        #fractione
+        novi_x = int(mem['posX'] + self.pomak.vrijednost(mem)[0])
+        novi_y = int(mem['posY'] + self.pomak.vrijednost(mem)[1])
+        
         if not(0 <= novi_x and novi_x < len(mem['vidljiva_okolina']) and 0 <= novi_y and novi_y < len(mem['vidljiva_okolina'][0])):
             return True
         elif mem['vidljiva_okolina'][novi_x][novi_y] == '#':
             return True
-        elif mem['vidljiva_okolina'][mem['posX'] + self.pomak.vrijednost(mem)[0]][mem['posY'] + self.pomak.vrijednost(mem)[1]] == '?':
+        elif mem['vidljiva_okolina'][novi_x][novi_y] == '?':
             return nenavedeno
         return False
 
 class Covjek(AST('')): 
     def vrijednost(self, mem): 
-        if mem['okolina'][mem['posX']][mem['posY']] == 'C':
+        if mem['okolina'][int(mem['posX'])][int(mem['posY'])] == 'C':
             return True
         return False
 
 class Pridruzivanje(AST('varijabla pridruzeno')):
     def izvrši(self, mem): 
-        mem[self.varijabla] = self.pridruzeno.vrijednost(mem)
+        #kolko sam se napatio zbog ovog Ivane ...
+        mem[self.varijabla] = copy.deepcopy(self.pridruzeno.vrijednost(mem))
 
 class Petlja(AST('varijabla pocetak kraj naredbe')):
     def izvrši(self, mem): 
@@ -430,6 +453,20 @@ class Lista(AST('var lista')):
     def vrijednost(self, mem): 
         if self.var ^ T.AVAR: return self.var.vrijednost(mem)
         else: return [element.vrijednost(mem) for element in self.lista]
+
+class Koordinate(AST('')):
+    def vrijednost(self, mem):
+        if "posX" in mem and "posY" in mem:
+            return [mem["posX"], mem["posY"]]
+        return []
+
+class PostaviKoordinate(AST('x y')):
+    def izvrši(self, mem):
+        if "posX" in mem and "posY" in mem:
+            mem["posX"] = self.x.vrijednost(mem)
+            mem["posY"] = self.y.vrijednost(mem)
+            if mem['okolina'][int(mem["posX"])][int(mem["posY"])] == '#':
+                raise SmrtRobota("Robot je došao na prepreku i umro :'(")
 
 class Ubaci(AST('lista element')):
     def izvrši(self, mem):

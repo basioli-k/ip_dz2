@@ -22,77 +22,12 @@ if __name__ == "__main__":
 
     '''
     izrazi = []
-    #zakomentirani primjeri nerade ali su poprilicno nebitni, vjv bi radili da stavimo neka_var = taj izraz
-    # izrazi.append('''
-    # Istina and Laz
-    # ''')
-
 
     def f(izraz, okolina):
         P.tokeniziraj(izraz)
         ast = P(izraz)
         prikaz(ast)
         ast.izvršiNaOkolini(okolina)
-
-    # izrazi.append('''
-    # Istina and Laz or Istina
-    # ''')
-
-    # izrazi.append('''
-    # 2<3
-    # ''')
-
-    # izrazi.append('''
-    # not Istina
-    # ''')
-
-    # izrazi.append('''
-    # Istina = Istina
-    # ''')
-
-    # izrazi.append('''
-    # 2>3 and Laz or 4<5 
-    # ''')
-
-    # izrazi.append('''
-    # (3<4) = Istina 
-    # ''')
-
-    # izrazi.append('''
-    # not not 2>3
-    # ''')
-
-    # izrazi.append('''
-    # Istina = Laz
-    # ''')
-
-    # izrazi.append('''
-    # 3 + 5
-    # ''')
-
-    # izrazi.append('''
-    # 3 * 5 * 2 + 4
-    # ''')
-
-    # izrazi.append('''
-    #  3 / 5
-    # ''')
-
-    # izrazi.append('''
-    # 3 * broj(laz) 
-    # ''')
-
-    # izrazi.append('''
-    # 3 * broj(laz) + broj(istina)
-    # ''')
-
-    # izrazi.append('''
-    # 2+-3
-    # ''')
-
-    # izrazi.append('''
-    # (2 * (3 + 4 ^ 2) - 2)
-    # ''')
 
     izrazi.append('''
     a = 5;
@@ -344,7 +279,7 @@ if __name__ == "__main__":
             #ako više puta pokrenete ovaj program viditi ćete da će robot 
             #nekada odabrati prelazak na upitnik a nekad nece
             #kada se odluči za prelazak umrijeti će inače će preživjeti
-            
+
             if (prepreka desno)
                 pomakni desno;
         ''',
@@ -362,6 +297,118 @@ if __name__ == "__main__":
         }
         )
     )
+
+    primjeriSOkolinom.append(
+        ('''
+            lista€ = [1, 2, koordinate];
+            ubaci(lista€, koordinate);
+            ispis(lista€);
+        ''',
+        {   #unatoč sjajno isprogramiranom robota, FER-ovci koji su napravili stroj zeznuli su senzore
+            #tako da robot ne zna uvijek razliku između čovjeka, praznog polja i sigurne smrti
+            #kad robot nije siguran s vjerojatnošću 50 posto bira napraviti blok naredbi
+            'vidljiva_okolina': [
+                list('...?C?...'),
+                list('....?....'),
+                list('.........'),
+            ],
+            'okolina' : [
+                list('...#C#...'),
+                list('....#....'),
+                list('.........'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    )
+
+    #DFS dok ne nade covjeka
+    primjeriSOkolinom.append(
+        ('''
+            otvoreno€ = [koordinate];
+            zatvoreno€ = [];
+            prolasci = 0;
+            while(duljina(otvoreno€) <> 0){
+                pozicija€ = izbaci(otvoreno€);
+
+                if(Covjek){
+                    Alarm;
+                    break;
+                }
+                
+                y = izbaci(pozicija€);
+                x = izbaci(pozicija€);
+                
+                postaviKoordinate(x, y);
+
+                ubaci(zatvoreno€, [x, y]);
+                potencijalni€ = [];
+                if (not prepreka desno){
+                    xNov = x + 0;
+                    yNov = y + 1;
+                    ubaci(potencijalni€, [xNov, yNov]);
+                }
+                
+                if (not prepreka lijevo) {
+                    xNov = x + 0;
+                    yNov = y - 1;
+                    ubaci(potencijalni€, [xNov, yNov]);
+                }
+                
+                if (not prepreka gore){
+                    xNov = x - 1;
+                    yNov = y + 0;
+                    ubaci(potencijalni€, [xNov, yNov]);
+                }
+                
+                if (not prepreka dolje) {
+                    xNov = x + 1;
+                    yNov = y + 0;
+                    ubaci(potencijalni€, [xNov, yNov]);
+                }
+
+                while(duljina(potencijalni€) <> 0){
+                    pot€ = izbaci(potencijalni€);
+                    yNov = izbaci(pot€);
+                    xNov = izbaci(pot€);
+                    zatvCopy€ = zatvoreno€;
+                    proden$ = Laz;
+                    while(duljina(zatvCopy€) <> 0){
+                        mogucaPoz€ = izbaci(zatvCopy€);
+                        potY = izbaci(mogucaPoz€);
+                        potX = izbaci(mogucaPoz€);
+                        if (potX == xNov and potY == yNov){
+                            proden$ = Istina;
+                            break;
+                        }
+                    }
+                    if (not proden$)
+                        ubaci(otvoreno€, [xNov, yNov]);
+                }
+            }
+        ''',
+        {   
+            'vidljiva_okolina': [
+                list('...?C?...'),
+                list('....#....'),
+                list('.........'),
+            ],
+            'okolina' : [
+                list('...#C....'),
+                list('....#....'),
+                list('.........'),
+            ],
+            'posX' : 0,
+            'posY' : 0
+        }
+        )
+    ) # sa ovom okolinom moze se dogoditi da robot ne nade nista, 
+      # da robot umre i da robot nade covjeka
+      # robot ce preziviti / ne naci covjeka jako rijetko
+      # da bi se to dogodilo robot mora sa svih polja oko upitnika pogledati na upitnik
+      # i reci da nece ici tamo (50 posto je sansa da ce robot otici na upitnik)
+
     # k, o = primjeriSOkolinom[-1]
     # f(k, o)
     
@@ -371,7 +418,7 @@ if __name__ == "__main__":
         except SintaksnaGreška as sg:
             print("greška")
             print(sg)
-            print(kod)
+            # print(kod)
             break
         except SmrtRobota as sr:
             print(sr)
