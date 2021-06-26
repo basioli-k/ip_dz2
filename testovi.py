@@ -308,7 +308,6 @@ if __name__ == "__main__":
 
     primjeriSOkolinom.append(
         ('''
-            break;
             a = 3;
             b = 4;
             ispis a;
