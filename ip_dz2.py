@@ -298,7 +298,7 @@ class P(Parser):
         elif broj := self.broj():
             usporedba = {T.MANJE, T.VECE, T.JEDNAKO}
             manje = vece = jednako = nenavedeno
-            if self >> usporedba:
+            if self > usporedba:
                 while u:= self >= usporedba:
                     if u ^ T.MANJE: manje = u
                     elif u ^ T.VECE: vece = u
