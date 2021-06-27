@@ -113,7 +113,6 @@ if __name__ == "__main__":
     # onda se robot zabusi na prepreku i umre :(, ako nije prepreka onda se uspjesno pomaknu na to polje i dalje nastavlja normalno.
     # Posto je cijela nasa logika s "neodlucom" vrijednoscu slozena tako da u 50% slucajeva bude izvrsen pomak. Nas robot ce u 50% slucajeva 
     # umrijeti u ovom primjeru, a u 50% slucajeva ce naci covjeka.
-    """
     primjeri.append(
         ('''
             put€ = [koordinate];
@@ -284,7 +283,6 @@ if __name__ == "__main__":
         }
         )
     )
-    """
 
     for kod, okolina in primjeri:
         try:
