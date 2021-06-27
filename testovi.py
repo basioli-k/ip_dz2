@@ -79,8 +79,7 @@ if __name__ == "__main__":
         ispis(lista€);
     }
     ''')
-
-    #TODO ubaci(l€, 3+4) iz nekog razloga ispis PLUS'+' BROJ'3' BROJ'4' 
+    
     izrazi.append('''
     l€ = [];
     ubaci(l€, 1);
@@ -131,15 +130,6 @@ if __name__ == "__main__":
         ispis(1);
     
     ''')
-
-
-    # izrazi.append('''
-    #     if(5)
-    #     {
-    #         ispis(1);
-    #     }
-
-    # ''')
 
     izrazi.append('''
     l€ = [1,2,3];
@@ -335,92 +325,6 @@ if __name__ == "__main__":
         }
         )
     )
-
-    #DFS dok ne nade covjeka
-    primjeriSOkolinom.append(
-        ('''
-            otvoreno€ = [koordinate];
-            zatvoreno€ = [];
-            prolasci = 0;
-            while(duljina(otvoreno€) <> 0){
-                pozicija€ = izbaci(otvoreno€);
-
-                if(Covjek){
-                    Alarm;
-                    break;
-                }
-                
-                y = izbaci(pozicija€);
-                x = izbaci(pozicija€);
-                
-                postaviKoordinate(x, y);
-
-                ubaci(zatvoreno€, [x, y]);
-                potencijalni€ = [];
-                if (not prepreka desno){
-                    xNov = x + 0;
-                    yNov = y + 1;
-                    ubaci(potencijalni€, [xNov, yNov]);
-                }
-                
-                if (not prepreka lijevo) {
-                    xNov = x + 0;
-                    yNov = y - 1;
-                    ubaci(potencijalni€, [xNov, yNov]);
-                }
-                
-                if (not prepreka gore){
-                    xNov = x - 1;
-                    yNov = y + 0;
-                    ubaci(potencijalni€, [xNov, yNov]);
-                }
-                
-                if (not prepreka dolje) {
-                    xNov = x + 1;
-                    yNov = y + 0;
-                    ubaci(potencijalni€, [xNov, yNov]);
-                }
-
-                while(duljina(potencijalni€) <> 0){
-                    pot€ = izbaci(potencijalni€);
-                    yNov = izbaci(pot€);
-                    xNov = izbaci(pot€);
-                    zatvCopy€ = zatvoreno€;
-                    proden$ = Laz;
-                    while(duljina(zatvCopy€) <> 0){
-                        mogucaPoz€ = izbaci(zatvCopy€);
-                        potY = izbaci(mogucaPoz€);
-                        potX = izbaci(mogucaPoz€);
-                        if (potX == xNov and potY == yNov){
-                            proden$ = Istina;
-                            break;
-                        }
-                    }
-                    if (not proden$)
-                        ubaci(otvoreno€, [xNov, yNov]);
-                }
-            }
-        ''',
-        {   
-            'vidljiva_okolina': [
-                list('...?C?...'),
-                list('....#....'),
-                list('.........'),
-            ],
-            'okolina' : [
-                list('...#C....'),
-                list('....#....'),
-                list('.........'),
-            ],
-            'posX' : 0,
-            'posY' : 0
-        }
-        )
-    ) # sa ovom okolinom moze se dogoditi da robot ne nade nista, 
-      # da robot umre i da robot nade covjeka
-      # robot ce preziviti / ne naci covjeka jako rijetko
-      # da bi se to dogodilo robot mora sa svih polja oko upitnika pogledati na upitnik
-      # i reci da nece ici tamo (50 posto je sansa da ce robot otici na upitnik)
 
     # k, o = primjeriSOkolinom[-1]
     # f(k, o)
