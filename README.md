@@ -16,5 +16,5 @@ Da bi sve radilo kako je očekivano potrebno je predati matricu znakova "vidljiv
 Elementi matrice "okolina" su znakovi:
 * "." - prazno polje
 * "C" - čovjek na polju
-* "#" - prepreka
+* "#" - prepreka  
 Elementi matrice "vidljiva_okolina" su isti znakovi uz dodatni znak "?" koji simbolizira da robot ne zna što se tamo nalazi. Na istoj poziciji na polju "okolina" može stajati bilo koji od prije navedena tri znaka.
