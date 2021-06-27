@@ -288,10 +288,10 @@ if __name__ == "__main__":
         try:
             f(kod, okolina)
         except SintaksnaGreška as sg:
-            print("greška")
             print(sg)
-            # print(kod)
             break
         except SmrtRobota as sr:
             print(sr)
+        except AssertionError as ae:
+            print(ae)
 

@@ -360,9 +360,18 @@ class Program(AST('naredbe')):
     def izvršiNaOkolini(self, okolina):
         if "okolina" in okolina and "vidljiva_okolina" in okolina:
             razlicite_dimenzije_redaka = len( set([len(redak) for redak in okolina["okolina"]]) |  set([len(redak) for redak in okolina["vidljiva_okolina"]]))
-
+            
             if len(okolina["okolina"]) !=  len(okolina["vidljiva_okolina"]) or razlicite_dimenzije_redaka != 1: 
+                
                 assert False, "Dimenzije okoline i vidljive okoline se ne podudaraju."  
+            else:
+                dobro_reprezentirana = True
+                for i, row  in enumerate(okolina["okolina"]):
+                    for j, znak in enumerate(row):
+                        if okolina["vidljiva_okolina"][i][j] != znak and okolina["vidljiva_okolina"][i][j] != "?":
+                            dobro_reprezentirana = False
+                            break
+                assert dobro_reprezentirana, "Vidljiva okolina se razlikuje od stvarne okoline."  
         
         self.izvrši(Memorija(okolina))
 
