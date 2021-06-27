@@ -11,10 +11,10 @@ Primjere programiranja robota možete vidjeti u datoteci *pokazni_primjeri.py*, 
 Za znatiželjne u datoteci nazvanoj kodnim imenom *ip_dz2.py* moguće je pronaći lekser, parser te AST-ove za programski jezik.
 
 Rad robota izvršava se na nekoj okolini. Simulacija toga je jasno vidljiva u primjerima. 
-Da bi sve radilo kako je očekivano potrebno je predati polja stringova "vidljiva_okolina" i "okolina" te koordinate robota "posX" i "posY".  
+Da bi sve radilo kako je očekivano potrebno je predati matricu znakova "vidljiva_okolina" i "okolina" te koordinate robota "posX" i "posY".  
 
-Elementi polja "okolina" sastavljeni su od znakova:
+Elementi matrice "okolina" su znakovi:
 * "." - prazno polje
 * "C" - čovjek na polju
 * "#" - prepreka
-Elementi polja "vidljiva_okolina" sastavljeni su od istih znakova uz dodatni znak "?" koji simbolizira da robot ne zna što se tamo nalazi. Na istoj poziciji na polju "okolina" može stajati bilo koji od prije navedena tri znaka.
+Elementi matrice "vidljiva_okolina" su isti znakovi uz dodatni znak "?" koji simbolizira da robot ne zna što se tamo nalazi. Na istoj poziciji na polju "okolina" može stajati bilo koji od prije navedena tri znaka.
