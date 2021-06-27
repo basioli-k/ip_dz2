@@ -1,5 +1,0 @@
-# todos
-
-# testirat sve!!
-
-# dodat komentare i mozda opise AST-ova
