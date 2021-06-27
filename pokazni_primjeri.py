@@ -33,7 +33,7 @@ if __name__ == "__main__":
             }
 
             # primjer s breakom.
-            forever$ = not laz or ( not IsTiNa and Uizraz(a + 5 * 3));
+            forever$ = not laz or ( not IsTiNa and izraz(a + 5 * 3));
             k = 5;
             while( forever$ ) {
                 if (k <= 9) ispis(k);
@@ -50,6 +50,7 @@ if __name__ == "__main__":
                 ispis(lista€);
             }
         ''',
+        # Ovom primjeru nije potreba okolina, pa je zato sljedeci dictionary prazan.
         {
 
         }
