@@ -304,6 +304,7 @@ class P(Parser):
                     elif u ^ T.VECE: vece = u
                     elif u ^ T.JEDNAKO: jednako = u
                 return Usporedba(broj, self.broj(), manje, vece, jednako)
+            else: raise SintaksnaGreška('Neispravan izraz')
 
     def log(self):
         if self > {T.COVJEK, T.PREPREKA}:
