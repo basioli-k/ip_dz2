@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     primjeri = list()
 
-    # Primjer koji prikazuje osnove nasem programskog jezika.
+    # Primjer koji prikazuje osnove naseg programskog jezika.
     primjeri.append(
         ('''
             a = 0;
