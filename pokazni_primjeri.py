@@ -57,8 +57,53 @@ if __name__ == "__main__":
         )
     )
 
+    # Primjer koji ilustrira koristenje robotom. Korisno je prije primjera pogledat kako izgleda okolina.
+    # Vidljiva okolina je okolina kakvu ce senzori od robota vidjeti (moguce su neke greske, u ovom primjeru ih nema),
+    # a okolina je okolina kakva ona stvarno jest. Uz ta dva parametra jos zadajemo i pocetnu poziciju robota. Vise o 
+    # ispisivanju okoline napisano je u kodu i u opisu sljedeceg primjera. U okolini '.' predstavljaju prazna polja,
+    # '#' predstavljaju prepreka, 'C' je covjek, 'R' je nas robot imena 'Rikose'. U vidljivoj okolini postoji jos mogucnost 
+    # pojave znaka '?' koji predstavlja da robot nemoze saznati sa sigurnoscu sto se nalazi na tom polju.
+    primjeri.append(
+        ('''
 
-    # Primjer gdje robot za spasavnje u potresu pretrazuje neku okolinu pomocu DFS-a.
+            ispis(KOORDINATE);
+            ispis(OKOLINA);
+
+            if (not prepreka desno) {
+                pomakni desno;
+            }
+            ispis(KOORDINATE);
+            ispis(OKOLINA);
+
+            while (not prepreka gore) {
+                pomakni gore;
+            }
+            ispis(KOORDINATE);
+            ispis(OKOLINA);
+
+            if (Covjek) {
+                Alarm;
+            }
+        ''',
+        {
+            'vidljiva_okolina': [
+                list('.C.'),
+                list('..#'),
+                list('...'),
+            ],
+            'okolina' : [
+                list('.C.'),
+                list('..#'),
+                list('...'),
+            ],
+            'posX' : 1,
+            'posY' : 1
+
+        }
+        )
+    )
+
+    # Primjer gdje robot za spasavanje u potresu pretrazuje neku okolinu pomocu DFS-a.
     # Radi bolje vizualizacije kretnje robota u kodu koristimo mogucnost ispisa cijele okoline.
     # Robot naravno nema mogucnost da vidi cijelu okolinu, on zna samo one informacije koje je zatrazio i na temelju njih se krece.
     # Svakako je bitno primjetiti da robot nekad dobije "neodlucnu" informaciju. Npr. u "vidljivoj okolini" (na dnu ovog primjera),

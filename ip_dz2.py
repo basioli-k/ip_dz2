@@ -1,3 +1,6 @@
+# Glavni program za naseg robota koji pretrazuje rusevine. Detaljniji opis se nalazi u readme datoteci.
+# Kroz kod su pisani komentari na mjestima gdje smo mislili da bi moglo doci do nekih nejasnoca.
+
 from typing import Literal
 from vepar import *
 import fractions
@@ -373,7 +376,7 @@ class Ispis(AST('ispisant')):
     def izvrši(self, mem):
         print(self.ispisant.vrijednost(mem))
 
-# Pomice robota za pomak, tj. za smjer neki od smjerova.
+# Pomice robota za pomak, tj. za smjer neki od smjerova. Ako je robot zavrsio na prepreci onda on umire :(.
 class Pomakni(AST('pomak')): 
     def izvrši(self, mem):
         novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
@@ -391,9 +394,8 @@ class Pomakni(AST('pomak')):
 class Alarm(AST('')): 
     def izvrši(self, mem): 
         print("ALARM!!! PRONASAO SAM COVJEKA!!!")
-        #mozda neki inkrement za broj pronađenih ljudi
 
-# Vraca True ako je u smjeru pomak prepreka, inace vraca False.
+# Vraca True ako je u smjeru pomak prepreka, ako nezna sto se tamo nalazi(problemi sa senzorima npr.) vraca neodlucno, inace vraca False.
 class Prepreka(AST('pomak')):
     def vrijednost(self, mem): 
         novi_x = int(mem['posX'] + self.pomak.vrijednost(mem)[0])
@@ -407,7 +409,7 @@ class Prepreka(AST('pomak')):
             return nenavedeno
         return False
 
-# Ispituje da li se nalazi covjek na trenutacnoj poziciji robota.
+# Ispituje nalazi li se covjek na trenutacnoj poziciji robota.
 class Covjek(AST('')): 
     def vrijednost(self, mem): 
         if mem['okolina'][int(mem['posX'])][int(mem['posY'])] == 'C':
