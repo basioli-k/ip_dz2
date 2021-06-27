@@ -4,20 +4,17 @@ import fractions
 import copy
 import random
 
-class SmrtRobota(Greška):
-    pass
-
 class T(TipoviTokena):
     PLUS, MINUS, PUTA, KROZ, NA = '+-*/^'
     OOTVR, OZTVR, UOTVR, UZTVR, VOTVR, VZTVR = '()[]{}'
     MANJE, VECE, JEDNAKO = '<>=' # Napravljeno kao u 21_BASIC.
     TOCKAZ, ZAREZ = ';,'
-    FOR, IF, TO, AND, OR, NOT, WHILE = 'for', 'if', 'to', 'and', 'or', 'not', "while"
-    ISPIS, UBROJ, UIZRAZ = 'ispis', 'broj', 'izraz'
-    POMAKNI, PREPREKA, COVJEK, ALARM, KOORDINATE = 'pomakni', 'prepreka', 'covjek', 'alarm', 'koordinate'
-    POSTAVIKOORDINATE = 'postavikoordinate'
-    UBACI, IZBACI, DULJINA = 'ubaci', 'izbaci', 'duljina'
+    FOR, IF, TO, AND, OR, NOT, WHILE, ISPIS = 'for', 'if', 'to', 'and', 'or', 'not', "while", 'ispis'
+    UBROJ, UIZRAZ = 'broj', 'izraz' # Sluze za castanje broja u izraz i obratno.
+    POMAKNI, PREPREKA, COVJEK, ALARM, KOORDINATE = 'pomakni', 'prepreka', 'covjek', 'alarm', 'koordinate' # Naredbe za koristenje robota.
+    UBACI, IZBACI, DULJINA = 'ubaci', 'izbaci', 'duljina' # Naredbe za liste.
 
+    # Tokeni za smjerove.
     class GORE(Token):
         literal = 'gore'
         def vrijednost(self, mem): return (-1, 0)
@@ -31,6 +28,7 @@ class T(TipoviTokena):
         literal = 'desno'
         def vrijednost(self, mem): return (0, 1)
 
+    # Tokeni logike.
     class ISTINA(Token):
         literal = 'istina'
         def vrijednost(self, mem): return True
@@ -45,7 +43,10 @@ class T(TipoviTokena):
         literal = 'break'
         def izvrši(self, mem): raise Prekid
 
-    # ispisivanje okoline bi se trebalo koristiti u potrebe testiranja
+    # Token koji se koristi kako bi se ispisala okolina. 
+    # On je zamisljen ISKLJUCIVO radi vizualizacije rjesenja problema i debugiranja.
+    # Ako bi ovaj robot zazivio, njegovi programeri nebi imali dostupno mogucnost ispisivanja okoline.
+    # Jer je cijela ideja robota da neznamo o kakvoj se "rusevini" tj. okolini radi.
     class OKOLINA(Token):
         literal = 'okolina'
         def vrijednost(self, mem): 
@@ -59,10 +60,14 @@ class T(TipoviTokena):
 
     class BROJ(Token):
         def vrijednost(self, mem): return fractions.Fraction(self.sadržaj)
+    # Sve varijable moraju poceti sa slovom, ali kasnije smiju sadrzavati i znamenke.
+    # Brojevne varijable.
     class BVAR(Token):
         def vrijednost(self, mem): return mem[self]
+    # Logicke varijable. Slicno kao u 21_BASIC zavrsavaju s $.
     class LVAR(Token):
         def vrijednost(self, mem): return mem[self]
+    # Listne varijable, A dolazi od ARRAY. Slicno kao u 21_basic zavrsavaju s €.
     class AVAR(Token):
         def vrijednost(self, mem): return mem[self]
 
@@ -73,9 +78,11 @@ alias = { 'up' : T.GORE, 'down' : T.DOLJE, 'left' : T.LIJEVO, 'right' : T.DESNO,
 def rikose(lex):
     for znak in lex:
         if znak.isspace(): lex.zanemari()
+        # Komentari
         elif znak == '#': 
             lex.pročitaj_do('\n')
             lex.zanemari()
+        # Brojevi
         elif znak.isdecimal():
             lex.prirodni_broj(znak)
             yield lex.token(T.BROJ)
@@ -94,7 +101,7 @@ def rikose(lex):
 
 ### BKG
 # start = naredbe -> naredba*
-# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija | BREAK TOCKAZ | ubaci TOCKAZ | izbaci TOCKAZ | ispis
+# naredba -> pridruzivanje TOCKAZ  | petlja | grananje | akcija TOCKAZ | BREAK TOCKAZ | ubaci TOCKAZ | izbaci TOCKAZ | ispis TOCKAZ
 
 # ubaci -> UBACI OOTVR AVAR ZAREZ lista OZTVR | UBACI OOTVR AVAR ZAREZ broj OZTVR
 # izbaci -> IZBACI OOTVR AVAR OZTVR
@@ -104,10 +111,11 @@ def rikose(lex):
 # petlja -> FOR OOTVR BVAR JEDNAKO broj TO broj OZTVR blok | WHILE OOTVR izraz OZTVR blok
 # grananje -> IF OOTVR izraz OZTVR blok
 # blok -> naredba | VOTVR naredbe VZTVR
-# akcija -> POMAKNI smjer TOCKAZ  | ALARM TOCKAZ 
+# akcija -> POMAKNI smjer | ALARM 
+
 # ocitavanje -> PREPREKA smjer | COVJEK 
 # smjer -> GORE | DOLJE | LIJEVO | DESNO
-# ispis -> ISPIS OOTVR broj OZTVR TOCKAZ | ISPIS OOTVR lista OZTVR TOCKAZ | ISPIS OOTVR OKOLINA OZTVR TOCKAZ
+# ispis -> ISPIS OOTVR broj OZTVR | ISPIS OOTVR lista OZTVR | ISPIS OOTVR OKOLINA OZTVR 
 
 # izraz -> disjunkt | izraz OR dijsunkt
 # disjunkt -> konjunkt | disjunkt AND konjunkt
@@ -118,7 +126,7 @@ def rikose(lex):
 # broj -> clan | broj (PLUS | MINUS) clan
 # clan -> faktor | clan (PUTA | KROZ) faktor
 # faktor -> baza | baza NA faktor | MINUS faktor
-# baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR | DULJINA lista
+# baza -> BROJ | OOTVR broj OZTVR | BVAR | UBROJ OOTVR izraz OZTVR | duljina
 
 # lista -> UOTVR (elementi | '') UZTVR | AVAR | KOORDINATE
 # elementi -> element | element ZAREZ elementi
@@ -138,7 +146,6 @@ class P(Parser):
         elif self > T.ISPIS: return self.ispis()
         elif self > T.UBACI: return self.ubaci()
         elif self > T.IZBACI: return self.izbaci()
-        elif self >= T.POSTAVIKOORDINATE: return self.postavi_koordinate()
         elif br := self >> T.BREAK:
             self >> T.TOCKAZ
             return br
@@ -147,9 +154,8 @@ class P(Parser):
         self >> T.ISPIS
         self >> T.OOTVR
         if self > T.OKOLINA: ispisant = self >> T.OKOLINA
-        elif self > {T.AVAR, T.UOTVR}: ispisant = self.lista()
+        elif self > {T.AVAR, T.UOTVR, T.KOORDINATE}: ispisant = self.lista()
         else: ispisant = self.broj()
-        #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
         self >> T.OZTVR
         self >> T.TOCKAZ
         return Ispis(ispisant)
@@ -162,7 +168,6 @@ class P(Parser):
 
         if self > {T.AVAR, T.UOTVR, T.KOORDINATE}: ubacenik = self.lista()
         else: ubacenik = self.broj()
-        #TODO ne znam bili ovo odradio sa else if i onda else pa raiseao neki exception, zvuci bolje
         self >> T.OZTVR
         self >> T.TOCKAZ
         return Ubaci(lista, ubacenik)
@@ -246,15 +251,6 @@ class P(Parser):
         else: blok = [self.naredba()]
         return blok
 
-    def postavi_koordinate(self):
-        self >> T.OOTVR
-        x = self.broj()
-        self >> T.ZAREZ
-        y = self.broj() 
-        self >> T.OZTVR
-        self >> T.TOCKAZ
-        return PostaviKoordinate(x, y)
-        
     def lista(self):
         if avar := self >= T.AVAR: return Lista(avar, [])
         if avar := self >= T.KOORDINATE: return Koordinate() 
@@ -372,11 +368,12 @@ class Program(AST('naredbe')):
             for naredba in self.naredbe: naredba.izvrši(mem)
         except Prekid: raise SemantičkaGreška('Nedozvoljen break izvan petlje')
 
+# Ispisuje vrijednost ispisanta.
 class Ispis(AST('ispisant')):
     def izvrši(self, mem):
         print(self.ispisant.vrijednost(mem))
 
-#akcije
+# Pomice robota za pomak, tj. za smjer neki od smjerova.
 class Pomakni(AST('pomak')): 
     def izvrši(self, mem):
         novi_x = mem['posX'] + self.pomak.vrijednost(mem)[0]
@@ -390,17 +387,15 @@ class Pomakni(AST('pomak')):
             mem['posX'] = novi_x
             mem['posY'] = novi_y
 
+# Ispisuje poruku da je nasao covjeka.
 class Alarm(AST('')): 
     def izvrši(self, mem): 
-        print("ALARM!!!")
+        print("ALARM!!! PRONASAO SAM COVJEKA!!!")
         #mozda neki inkrement za broj pronađenih ljudi
 
-#očitavanja
+# Vraca True ako je u smjeru pomak prepreka, inace vraca False.
 class Prepreka(AST('pomak')):
     def vrijednost(self, mem): 
-        #ovo sam pri dfsu skuzio slucajno
-        #cini mi se da se desilo jer funkcija postavikoordinate postavi
-        #fractione
         novi_x = int(mem['posX'] + self.pomak.vrijednost(mem)[0])
         novi_y = int(mem['posY'] + self.pomak.vrijednost(mem)[1])
         
@@ -412,15 +407,16 @@ class Prepreka(AST('pomak')):
             return nenavedeno
         return False
 
+# Ispituje da li se nalazi covjek na trenutacnoj poziciji robota.
 class Covjek(AST('')): 
     def vrijednost(self, mem): 
         if mem['okolina'][int(mem['posX'])][int(mem['posY'])] == 'C':
             return True
         return False
 
+# Pridruzuje varijabli vrijednost od pridruzeno.
 class Pridruzivanje(AST('varijabla pridruzeno')):
     def izvrši(self, mem): 
-        #kolko sam se napatio zbog ovog Ivane ...
         mem[self.varijabla] = copy.deepcopy(self.pridruzeno.vrijednost(mem))
 
 class Petlja(AST('varijabla pocetak kraj naredbe')):
@@ -447,7 +443,7 @@ class Grananje(AST('uvjet naredbe')):
         b = self.uvjet.vrijednost(mem)
         if b == True:
             for naredba in self.naredbe: naredba.izvrši(mem)
-        elif b == nenavedeno and random.randint(0, 1) == 1: #robot nasumično bira hoće li ili neće riskirati
+        elif b == nenavedeno and random.randint(0, 1) == 1: # Ako je izraz 'neodlucan' onda se naredbe izvrse sa sansom od 50%.
             for naredba in self.naredbe: naredba.izvrši(mem)
     
 class Lista(AST('var lista')):
@@ -455,41 +451,39 @@ class Lista(AST('var lista')):
         if self.var ^ T.AVAR: return self.var.vrijednost(mem)
         else: return [element.vrijednost(mem) for element in self.lista]
 
+# Vraca trenutnu poziciju robota, tj. njegove kordinate u obliku liste [posX, posY].
 class Koordinate(AST('')):
     def vrijednost(self, mem):
         if "posX" in mem and "posY" in mem:
             return [mem["posX"], mem["posY"]]
         return []
 
-class PostaviKoordinate(AST('x y')):
-    def izvrši(self, mem):
-        if "posX" in mem and "posY" in mem:
-            mem["posX"] = self.x.vrijednost(mem)
-            mem["posY"] = self.y.vrijednost(mem)
-            if mem['okolina'][int(mem["posX"])][int(mem["posY"])] == '#':
-                raise SmrtRobota("Robot je došao na prepreku i umro :'(")
-
+# Ubacuje element element u listu lista.
 class Ubaci(AST('lista element')):
     def izvrši(self, mem):
         self.lista.vrijednost(mem).append(self.element.vrijednost(mem))
         return True
 
+# Izbacuje zadnji element iz liste lista.
 class Izbaci(AST('lista')):
     def izvrši(self, mem):
         self.lista.vrijednost(mem).pop()
     def vrijednost(self,mem):
         return self.lista.vrijednost(mem).pop()
 
+# Vraca duljinu liste lista.
 class Duljina(AST('lista')):
     def vrijednost(self, mem):
         return len(self.lista.vrijednost(mem)) 
 
+# Pretvara vrijednost Logickog izraza izraz u broj. Vraca 2 ako je vrijednost True, 0 ako je false i 1 ako je neodlucno.
 class LogUBroj(AST('izraz')):
     def vrijednost(self, mem):
         if self.izraz.vrijednost(mem) == True: return 2
         elif self.izraz.vrijednost(mem) == False: return 0
         else: return 1
 
+# Pretvara vrijednost Brojevnog izraza broj u logicku vrijednost. Vraca False ako je vrijednost 0, neodlucno ako je 1 i True inace.
 class BrojULog(AST('broj')):
     def vrijednost(self, mem):
         if self.broj.vrijednost(mem) == 0: return False
@@ -559,8 +553,11 @@ class Op(AST('operator lijevo desno')):
             return self.lijevo.vrijednost(mem) / self.desno.vrijednost(mem)
 
 
+# Klasa koja nam omogucava break.
 class Prekid(NelokalnaKontrolaToka): pass
 
+# Greska koja se desi kada robot umre.
+class SmrtRobota(Greška): pass
 
 if __name__ == "__main__":
     pass
